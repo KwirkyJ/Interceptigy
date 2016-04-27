@@ -1,12 +1,25 @@
 ---Module for piecewise polynomial functions.
 
-local moretables = require 'lib.moretables'
+local moretables = require 'lib.moretables.init'
 
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
 local function addPiece(self, t1, coeffs)
+    assert(type(t1) == 'number')
+    assert(type(coeffs) == 'table')
+    assert(#coeffs > 0)
     local pieces = self[1]
+    
+    local leading_zeroes = 0
+    for i=1, #coeffs do
+        if coeffs[i] ~= 0 then break end
+        leading_zeroes = leading_zeroes + 1
+    end
+    for i=1, leading_zeroes do
+        table.remove(coeffs, 1)
+    end
+    
     if not pieces[1] then
         pieces[1] = {t1, coeffs}
     else
@@ -66,23 +79,51 @@ end
 
 ---Find the 'time(s)' at which the polynomial has the given value;
 -- supports only polynomials of degree two or less.
---TODO: define how to handle constants
 local function root(self, v)
     v = v or 0
     assert(type(v) == 'number', 'value must be number, was: '..type(v))
-    local roots, t_start, coeffs = {}
---    for i=1, #self[1] do
---        local t_start, coeffs = self[1][i][1], self[1][i][2]
---        --assert(type(t_start) == 'number')
---        --assert(type(coeffs) == 'table')
---        --TODO
---    end
-    if self[1][1] then
-        local coeffs = self[1][1][2]
-        if #coeffs > 0 then
+    if not self[1][1] then return {} end
+    local roots, t_start, t_stop, t, coeffs = {}
+    for i=1, #self[1] do
+        t_start, coeffs = self[1][i][1], self[1][i][2]
+        if self[1][i+1] then t_stop = self[1][i+1][1]
+        else t_stop = math.huge
+        end
+        --assert(type(t_start) == 'number')
+        --assert(type(t_stop)  == 'number')
+        --assert(type(coeffs)  == 'table')
+        if #coeffs == 1 then
+            if coeffs[1] == v then
+                roots[#roots+1] = {t_start, t_stop}
+            end
+        elseif #coeffs == 2 then
+            t = (v - coeffs[2]) / coeffs[1]
+            if t >= t_start and t < t_stop then
+                roots[#roots+1] = t
+            end
+        elseif #coeffs == 3 then
+            -- x = (-b +/- (b^2 + 4ac)^0.5) / (2a)
             local a, b, c = coeffs[1], coeffs[2], coeffs[3]
-            roots[#roots+1] = (-b - (b^2 - 4*a*c)^0.5) / 2*a
-            roots[#roots+1] = (-b + (b^2 - 4*a*c)^0.5) / 2*a
+            c = c - v
+            t = (b^2 - 4*a*c)
+            if t >= 0 then
+                t = t^0.5
+                local t1, t2 = (-(b+t))/(2*a), (t-b)/(2*a)
+                if t1 == t2 then 
+                    t2 = nil
+                elseif t2 < t1 then 
+                    t1, t2 = t2, t1 
+                end
+                --t1, t2 = math.min(t1, t2), math.max(t1, t2)
+                if t1 >= t_start and t1 < t_stop then
+                    roots[#roots+1] = t1
+                end
+                if  t2
+                and t2 >= t_start 
+                and t2 < t_stop 
+                then roots[#roots+1] = t2
+                end
+            end
         end
     end
     return roots
