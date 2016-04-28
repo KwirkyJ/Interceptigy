@@ -42,12 +42,19 @@ function love.load()
     es = {new_element(), new_element()}
 end
 
-function love.update(dt)
-    time_elapsed = getTime() - starttime
-    if lk.isDown('escape') then love.event.push('quit') end
-    if lk.isDown('space') or lk.isDown(' ') then -- backwards-compatibility
+function love.keypressed(key)
+    if key == 'escape' then love.event.push('quit') end
+   
+    if key == ' ' or key == 'space' then -- backwards-compatibility
         es = {new_element(), new_element()}
     end
+end
+
+--function love.keyreleased(key)
+--end
+
+function love.update(dt)
+    time_elapsed = getTime() - starttime
     for i=1, #es do
         local ex, ey = es[i]:getPosition(time_elapsed)
         if 0 > ex or ex > winx or 0 > ey or ey > winy then
