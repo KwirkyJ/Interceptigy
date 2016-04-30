@@ -44,11 +44,13 @@ viewport.update = function(self, dt)
         local mag = dt * self.panrate
         local dx, dy = mag * math.cos(self.transDTheta),
                        mag * math.sin(self.transDTheta)
-        if math.abs(dx) > math.abs(self.transDX) then
+        if math.abs(dx) >= math.abs(self.transDX) then
             self.x, self.y = self.x + self.transDX, self.y + self.transDY
             self.transDX, self.transDY, self.transDMag, self.transDTheta = false, false, false, false
         else
             self.x, self.y = self.x + dx, self.y + dy
+            self.transDX = self.transDX - dx
+            self.transDY = self.transDY - dy
         end
         
     end

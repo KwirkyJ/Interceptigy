@@ -42,7 +42,7 @@ end
 TestTranslation.test_pan_rateset = function(self)
     self.vp:setPanRate(100) -- 100 'world distance units' per second
     self.vp:setPosition(-20, 0)
-    self.vp:pan(200, 100)
+    self.vp:pan(200, 100) -- h=223
     assertEquals({self.vp:getBounds()}, {-20, 0, 780, 600})
     
     self.vp:update(0.5) -- half-second
@@ -52,6 +52,9 @@ TestTranslation.test_pan_rateset = function(self)
     assertAlmostEquals(dy, 22.360679774998, 1e-10)
     assertAlmostEquals(dx, 44.721359549996, 1e-10)
     assertEquals({self.vp:getBounds()}, {dx-20, dy+0, dx+780, dy+600})
+    
+    self.vp:update(2.0)
+    assertEquals({self.vp:getBounds()}, {180, 100, 980, 700})
 end
 --TODO: pan while zoomed(-ing) in/out and/or rotated(-ing)
 
