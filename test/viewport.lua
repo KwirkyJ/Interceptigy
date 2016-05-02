@@ -64,7 +64,7 @@ TestScale.setUp = function(self)
 end
 TestScale.test_setScale = function(self)
     assertEquals({self.vp:getBounds()}, {0, 0, 500, 400})
-    assertEquals({self.cp:getCenter()}, {250, 200})
+    assertEquals({self.vp:getCenter()}, {250, 200})
     
     self.vp:setScale(2)
     assertEquals({self.vp:getBounds()},             {0, 0, 250, 200})
@@ -76,7 +76,7 @@ TestScale.test_setScale = function(self)
 end
 TestScale.test_setScale_centered = function(self)
     assertEquals({self.vp:getBounds()}, {0, 0, 500, 400})
-    assertEquals({self.cp:getCenter()}, {250, 200})
+    assertEquals({self.vp:getCenter()}, {250, 200})
     
     self.vp:setScale(100, "center")
     assertEquals({self.vp:getBounds()},             {347.5, 298, 352.5, 302})
