@@ -92,7 +92,7 @@ TestScale.test_setZoom = function(self)
     self.vp:setZoom(1)
     assertEquals( self.vp:getScale(),               2)
     assertEquals({self.vp:getBounds()},             {0,0, 250,200})
-    assertEquals({self.vp:getCenter()},             {125, 100}
+    assertEquals({self.vp:getCenter()},             {125, 100})
     assertEquals({self.vp:getWorldPoint(80, 100)},  {40, 50})
     assertEquals({self.vp:getScreenPoint(80, 100)}, {160, 200})
 end
@@ -101,7 +101,7 @@ TestScale.test_setZoom_centered = function(self)
     self.vp:setZoom(-1, "center")
     assertEquals( self.vp:getScale(),               0.1)
     assertEquals({self.vp:getBounds()},             {-2250, -1800, 2750, 2200})
-    assertEquals({self.vp:getCenter()},             {250, 200}
+    assertEquals({self.vp:getCenter()},             {250, 200})
     assertEquals({self.vp:getWorldPoint(80, 100)},  {-1450, 1300})
     assertEquals({self.vp:getScreenPoint(80, 100)}, {258, 210})
 end
