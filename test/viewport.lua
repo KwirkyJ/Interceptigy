@@ -56,7 +56,7 @@ TestTranslation.test_pan_rateset = function(self)
     self.vp:update(2.0)
     assertEquals({self.vp:getBounds()}, {180, 100, 980, 700})
 end
---TODO: pan while zoomed(-ing) in/out and/or rotated(-ing)
+--TODO: order of transforms
 
 
 
@@ -82,13 +82,15 @@ TestScale.test_setScale_centered = function(self)
     
     self.vp:setScale(100, "center")
     assertEquals({self.vp:getCenter()},             {250, 200})
-    assertEquals({self.vp:getBounds()},             {347.5, 298, 352.5, 302})
-    assertEquals({self.vp:getWorldPoint(200, 80)},  {349.5, 298.8})
-    assertEquals({self.vp:getScreenPoint(200, 80)}, {-14750, -13800})
+    assertEquals({self.vp:getBounds()},             {247.5, 198, 252.5, 202})
+    assertEquals({self.vp:getWorldPoint(200, 80)},  {249.5, 198.8})
+    assertEquals({self.vp:getScreenPoint(200, 80)}, {-4750, -11800})
     assertAlmostEquals(self.vp:getZoom(), 6.64385619, 1e-7)
     
-    self.vp:setZoomBase(10)
+    self.vp:setZoomBase(10) -- demonstrate base-change maintains situation
     assertAlmostEquals(self.vp:getZoom(), 2, 1e-12)
+    assertEquals({self.vp:getBounds()},             {247.5, 198, 252.5, 202})
+    assertEquals({self.vp:getWorldPoint(200, 80)},  {249.5, 198.8})
 end
 TestScale.test_setZoom = function(self)
     self.vp:setZoom(1)
@@ -104,8 +106,8 @@ TestScale.test_setZoom_centered = function(self)
     assertAlmostEquals(self.vp:getScale(), 0.1, 1e-12)
     assertEquals({self.vp:getCenter()},             {250, 200})
     assertEquals({self.vp:getBounds()},             {-2250, -1800, 2750, 2200})
-    assertEquals({self.vp:getWorldPoint(80, 100)},  {-1450, 1300})
-    assertEquals({self.vp:getScreenPoint(80, 100)}, {258, 210})
+    assertEquals({self.vp:getWorldPoint(80, 100)},  {-1450, -800})
+    assertEquals({self.vp:getScreenPoint(80, 100)}, {233, 190})
 end
 TestScale.test_zoom = function(self)
     assertEquals(self.vp:getZoomRate(), 1) -- zoom level/s ? s/zoom level
@@ -122,6 +124,7 @@ TestScale.test_zoom = function(self)
     assertAlmostEquals( self.vp:getScale(), 2, 1e-12)
     assertEquals({self.vp:getBounds()}, {125, 100, 375, 300})
 end
+--TODO: zoomIn, zoomOut; or setZoom(delta, [where], true); or zoomTo
 
 luaunit:run()
 
