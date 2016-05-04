@@ -54,7 +54,7 @@ end
 
 viewport.update = function(self, dt)
     if self.transDMag then
-        local mag = dt * self.panrate
+        local mag = dt * self.panRate
         local dx, dy = mag * math.cos(self.transDTheta),
                        mag * math.sin(self.transDTheta)
         if math.abs(dx) >= math.abs(self.transDX) then
@@ -84,8 +84,12 @@ viewport.update = function(self, dt)
     end
 end
 
+viewport.getPanRate = function(self)
+    return self.panRate
+end
+
 viewport.setPanRate = function(self, delta_units)
-    self.panrate = delta_units
+    self.panRate = delta_units
 end
 
 viewport.pan = function(self, dx, dy)
@@ -168,6 +172,7 @@ viewport.new = function(width, height)
             width     = width,
             height    = height,
             scale     = 1,
+            panRate   = 1,
             zoomBase  = 2,
             zoomPower = 0,
             zoomRate  = 1, -- whatever that means
@@ -181,7 +186,7 @@ viewport.new = function(width, height)
             setCenter      = viewport.setCenter,
             update         = viewport.update,
             pan            = viewport.pan,
-            --getPanRate     = viewport.getPanRate,
+            getPanRate     = viewport.getPanRate,
             setPanRate     = viewport.setPanRate,
             getScale       = viewport.getScale,
             setScale       = viewport.setScale,

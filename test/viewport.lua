@@ -40,11 +40,11 @@ TestTranslation.test_recenter = function(self)
     assertEquals({self.vp:getScreenPoint(30, 400)}, {410, 680})
 end
 TestTranslation.test_pan_rateset = function(self)
-    self.vp:setPanRate(100) -- 100 'world distance units' per second
+    self.vp:setPanRate(100) -- 100 'screen distance units' per second
     self.vp:setPosition(-20, 0)
-    self.vp:pan(200, 100) -- h=223
     assertEquals({self.vp:getBounds()}, {-20, 0, 780, 600})
     
+    self.vp:pan(200, 100) -- h=223
     self.vp:update(0.5) -- half-second
     local atan = math.atan2 or math.atan
     local theta = atan(100, 200)
@@ -128,7 +128,46 @@ TestScale.test_zoom = function(self)
     assertAlmostEquals(self.vp:getZoom(), 1, 1e-12)
     assertEquals({self.vp:getBounds()}, {125, 100, 375, 300})
 end
---TODO: zoomIn, zoomOut; or setZoom(delta, [where], true); or zoomTo
+TestScale.test_setZoom_is_absolute = function(self)
+    self.vp:setZoom(1)
+    assertEquals({self.vp:getBounds()}, {0, 0, 250, 200})
+    self.vp:setZoom(0)
+    assertAlmostEquals(self.vp:getScale(), 1, 1e-12)
+    assertEquals({self.vp:getBounds()}, {0, 0, 500, 400})
+end
+TestScale.test_zoom_is_relative = function(self)
+    self.vp:setZoomBase(10)
+    self.vp:setScale(10)
+    assertAlmostEquals(self.vp:getZoom(), 1, 1e-12)
+    assertEquals({self.vp:getBounds()}, {0,0, 50, 40})
+    
+    self.vp:setZoomRate(2) -- 2 'levels' per second
+    self.vp:zoom(-1)
+    self.vp:update(0.3)
+    assertAlmostEquals(self.vp:getZoom(), 0.4, 1e-12)
+    local w, h = self.vp:getWorldPoint(500, 400)
+    assertAlmostEquals(w, 500/10^0.4, 1e-10) -- ~ 199.05358527675
+    assertAlmostEquals(h, 400/10^0.4, 1e-10) -- ~ 159.2428682214
+end
+
+
+TestConcurrent = {}
+TestConcurrent.setUp = function(self)
+    self.vp = viewport.new(1600, 900)
+end
+TestConcurrent.test_pan_while_scaled = function(self)
+    self.vp:setScale(4)
+    assertEquals({self.vp:getBounds()}, {0,0, 400, 225})
+    assertEquals(self.vp:getPanRate(), 1)
+    
+    --self.vp:pan()
+end
+TestConcurrent.test_zoom_while_translated = function(self)
+end
+TestConcurrent.test_pan_and_zoom = function(self)
+end
+
+
 
 luaunit:run()
 
