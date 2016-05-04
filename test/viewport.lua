@@ -67,6 +67,8 @@ end
 TestScale.test_setScale = function(self)
     assertEquals({self.vp:getBounds()}, {0, 0, 500, 400})
     assertEquals({self.vp:getCenter()}, {250, 200})
+    assertEquals( self.vp:getScale(), 1)
+    assertEquals( self.vp:getZoom(), 0)
     
     self.vp:setScale(2)
     assertEquals({self.vp:getCenter()},             {125, 100})
