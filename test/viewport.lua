@@ -173,10 +173,9 @@ TestConcurrent.test_zoom_while_translated = function(self)
     self.vp:zoom(1)
     self.vp:update(0.5)
     assertAlmostEquals(self.vp:getScale(), 2^0.5, 1e-12)
-    assertEquals({self.vp:getBounds()}, {-1000,
-                                           100,
-                                          1600 / 2^0.5 - 1000,
-                                           900 / 2^0.5 + 100})
+    assertEquals({self.vp:getBounds()}, 
+                 {-1000, 100,
+                  1600 / 2^0.5 - 1000, 900 / 2^0.5 + 100})
 end
 TestConcurrent.test_pan_and_zoom = function(self)
     assert(false, 'todo')
