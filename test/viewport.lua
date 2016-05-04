@@ -160,11 +160,18 @@ TestConcurrent.test_pan_while_scaled = function(self)
     assertEquals({self.vp:getBounds()}, {0,0, 400, 225})
     assertEquals(self.vp:getPanRate(), 1)
     
-    --self.vp:pan()
+    self.vp:pan(20, 5) -- h = sqrt(425) ~ 20.6155
+    self.vp:update(7)
+    local x, y = (20 / 425^0.5) * 28, (5 / 425^0.5) * 28
+    assertEquals({self.vp:getBounds()}, {x, y, 400+x, 225+y})
 end
 TestConcurrent.test_zoom_while_translated = function(self)
+    self.vp:setPosition(-1000, 100)
+    assertEquals({self.vp:getBounds()}, {-1000, 100, 600, 1000})
+    assert(false, 'todo')
 end
 TestConcurrent.test_pan_and_zoom = function(self)
+    assert(false, 'todo')
 end
 
 
