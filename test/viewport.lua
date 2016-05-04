@@ -117,13 +117,15 @@ TestScale.test_zoom = function(self)
     
     self.vp:zoom(1, "center")
     self.vp:update(0.5)
+    local halfx, halfy = (500 / 2^0.5) / 2, (400 / 2^0.5) / 2 -- dim/scale/2
     assertAlmostEquals(self.vp:getScale(), 2^0.5, 1e-12)
     assertEquals({self.vp:getCenter()}, {250, 200})
     assertEquals({self.vp:getBounds()}, 
-                 {250 - 250*2^0.5, 200 - 200*2^0.5, -- center +/- [width/height]/2 * scale
-                  250 + 250*2^0.5, 200 + 200*2^0.5})
+                 {250 - halfx, 200 - halfy,
+                  250 + halfx, 200 + halfy})
     self.vp:update(0.6) -- dt sum == 1.1
-    assertAlmostEquals( self.vp:getScale(), 2, 1e-12)
+    assertAlmostEquals(self.vp:getScale(), 2, 1e-12)
+    assertAlmostEquals(self.vp:getZoom(), 1, 1e-12)
     assertEquals({self.vp:getBounds()}, {125, 100, 375, 300})
 end
 --TODO: zoomIn, zoomOut; or setZoom(delta, [where], true); or zoomTo
