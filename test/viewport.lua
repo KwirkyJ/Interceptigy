@@ -12,8 +12,6 @@ TestTranslation.test_defaults = function(self)
     assertEquals({self.vp:getPosition()}, {0, 0})
     assertEquals({self.vp:getCenter()}, {400,300})
     assertEquals({self.vp:getBounds()}, {0, 0, 800, 600})
---    assertEquals( self.vp:getRotation(), 0)
-    --assertEquals( self.vp:getScale(), 1)
     assertEquals({self.vp:getWorldPoint(30, 400)}, {30, 400})
     assertEquals({self.vp:getScreenPoint(30, 400)}, {30, 400})
 end
@@ -56,7 +54,6 @@ TestTranslation.test_pan_rateset = function(self)
     self.vp:update(2.0)
     assertEquals({self.vp:getBounds()}, {180, 100, 980, 700})
 end
---TODO: order of transforms
 
 
 
@@ -107,8 +104,8 @@ TestScale.test_setZoom_centered = function(self)
     self.vp:setZoom(-1, "center")
     assertAlmostEquals(self.vp:getScale(), 0.1, 1e-12)
     assertEquals({self.vp:getCenter()},             {250, 200})
-    assertEquals({self.vp:getBounds()},             {-2250, -1800, 2750, 2200})
-    assertEquals({self.vp:getWorldPoint(80, 100)},  {-1450, -800})
+    assertEquals({self.vp:getBounds()},             {-2250,-1800, 2750,2200})
+    assertEquals({self.vp:getWorldPoint(80, 100)},  {-1450,-800})
     assertEquals({self.vp:getScreenPoint(80, 100)}, {233, 190})
 end
 TestScale.test_zoom = function(self)
@@ -149,6 +146,7 @@ TestScale.test_zoom_is_relative = function(self)
     assertAlmostEquals(w, 500/10^0.4, 1e-10) -- ~ 199.05358527675
     assertAlmostEquals(h, 400/10^0.4, 1e-10) -- ~ 159.2428682214
 end
+--TODO: supply a function specifying zoom behavior?
 
 
 TestConcurrent = {}
@@ -167,8 +165,18 @@ TestConcurrent.test_pan_while_scaled = function(self)
 end
 TestConcurrent.test_zoom_while_translated = function(self)
     self.vp:setPosition(-1000, 100)
-    assertEquals({self.vp:getBounds()}, {-1000, 100, 600, 1000})
-    assert(false, 'todo')
+    assertEquals({self.vp:getBounds()},  {-1000, 100, 600, 1000})
+    assertEquals( self.vp:getZoom(),     0)
+    assertEquals( self.vp:getZoomBase(), 2)
+    assertEquals( self.vp:getZoomRate(), 1)
+    
+    self.vp:zoom(1)
+    self.vp:update(0.5)
+    assertAlmostEquals(self.vp:getScale(), 2^0.5, 1e-12)
+    assertEquals({self.vp:getBounds()}, {-1000,
+                                           100,
+                                          1600 / 2^0.5 - 1000,
+                                           900 / 2^0.5 + 100})
 end
 TestConcurrent.test_pan_and_zoom = function(self)
     assert(false, 'todo')
