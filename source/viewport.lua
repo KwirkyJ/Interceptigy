@@ -4,10 +4,12 @@
 -- supports zooming and panning in addition to basic setters.
 
 local atan = math.atan2 or math.atan
+local DEFAULT_PRECISION = 1e-13
 
 
 
-local viewport = {_VERSION = '0.1.0'}
+local viewport = {_VERSION = '0.1.0',
+                  precsion = DEFAULT_PRECISION}
 
 ---Get the canonical dimensions of the viewport
 viewport.getDimensions = function(self)
@@ -115,10 +117,17 @@ viewport.getScale = function(self)
     return self.scale
 end
 
+---Set the precision of exponent-solve (default MODULE_DEFAULT)
+viewport.setSolverPrecision = function(p)
+    p = p or DEFAULT_PRECISION
+    assert(type(p) == 'number')
+    viewport.precision = p
+end
+
 ---Find what power of BASE near-equates target
 local function exponent_solve(base, target)
     local x, range = 0, 1
-    while math.abs(base^x - target) > 1e-13 do
+    while math.abs(base^x - target) > viewport.precision do
         if target < (base^(x - range)) then
             x, range = x-range, range*2
         elseif target > (base^(x + range)) then
