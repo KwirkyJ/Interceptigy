@@ -62,19 +62,6 @@ end
 
 ---Transform the viewport in accordance with elapsed time (zoom, pan, -rotate-)
 viewport.update = function(self, dt)
-    if self.transDMag then
-        local mag = dt * self.panRate
-        local dx, dy = mag * math.cos(self.transDTheta) * self.scale,
-                       mag * math.sin(self.transDTheta) * self.scale
-        if math.abs(dx) >= math.abs(self.transDX) then
-            self.x, self.y = self.x + self.transDX, self.y + self.transDY
-            self.transDX, self.transDY, self.transDMag, self.transDTheta = false, false, false, false
-        else
-            self.x, self.y = self.x + dx, self.y + dy
-            self.transDX = self.transDX - dx
-            self.transDY = self.transDY - dy
-        end
-    end
     if self.zoomDelta then
         local powerDelta, cenx, ceny = self.zoomRate * dt
         cenx, ceny = self:getCenter()
@@ -91,6 +78,19 @@ viewport.update = function(self, dt)
         if self.zoomCenter then self:setCenter(cenx, ceny) end
         if not zoomDelta then zoomCenter = false end
     end
+    if self.transDMag then
+        local mag = dt * self.panRate
+        local dx, dy = mag * math.cos(self.transDTheta) / self.scale,
+                       mag * math.sin(self.transDTheta) / self.scale
+        if math.abs(dx) >= math.abs(self.transDX) then
+            self.x, self.y = self.x + self.transDX, self.y + self.transDY
+            self.transDX, self.transDY, self.transDMag, self.transDTheta = false, false, false, false
+        else
+            self.x, self.y = self.x + dx, self.y + dy
+            self.transDX = self.transDX - dx
+            self.transDY = self.transDY - dy
+        end
+    end
 end
 
 ---Get the rate, screen points per second, of panning in updates
@@ -103,10 +103,10 @@ viewport.setPanRate = function(self, delta_units)
     self.panRate = delta_units
 end
 
----Queue a translation of the viewport
---TODO: relative to screen or world flag?
+---Queue a translation of the viewport by the given (world) distances
+--TODO: ? flag/toggle world or screen distances
 viewport.pan = function(self, dx, dy)
-    self.transDX, self.transDY = dx * self.scale, dy * self.scale
+    self.transDX, self.transDY = dx, dy
     self.transDTheta, self.transDMag = atan(dy, dx), (dx^2 + dy^2)^0.5
 end
 
@@ -130,7 +130,7 @@ local function exponent_solve(base, target)
     return x
 end
 
----Set the scale of the viewport (adjusts zoomPower as closely as possible); 
+---Set the scale of the viewport - adjusts zoomPower as closely as possible; 
 -- can scale relative to center (default ULC)
 viewport.setScale = function(self, s, where)
     local cenx, ceny 
@@ -165,24 +165,24 @@ end
 
 ---Set the base of the zoom logarithm; will not change current scale/position
 viewport.setZoomBase = function(self, b)
-    -- maintains current scaling and position
     self.zoomPower = exponent_solve(b, self:getScale())
     self.zoomBase = b
     self.scale = self.zoomBase ^ self.zoomPower
 end
 
----Get the rate, in powers-per-second, of zooming
+---Get the rate, in powers-per-second, of zooming in updates
 viewport.getZoomRate = function(self)
     return self.zoomRate
 end
 
----Set the rate of zooming in updates, units are powers-per-second
+---Set the rate, in powers-persecond, of zooming in updates
 viewport.setZoomRate = function(self, r)
     self.zoomRate = r
 end
 
----Queue a zoom in updates, unit given is delta from current zoom level;
+---Queue a zoom in updates; unit given is delta from current zoom level;
 -- can scale relative to center (default ULC)
+--TODO: ? flag absolute instead of delta
 viewport.zoom = function(self, delta, where)
     if where == 'center' then
         self.zoomCenter = true

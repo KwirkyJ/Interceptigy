@@ -114,7 +114,7 @@ TestScale.test_zoom = function(self)
     
     self.vp:zoom(1, "center")
     self.vp:update(0.5)
-    local halfx, halfy = (500 / 2^0.5) / 2, (400 / 2^0.5) / 2 -- dim/scale/2
+    local halfx, halfy = 500 / 2^0.5 / 2, 400 / 2^0.5 / 2 -- dim/scale/2
     assertAlmostEquals(self.vp:getScale(), 2^0.5, 1e-12)
     assertEquals({self.vp:getCenter()}, {250, 200})
     assertEquals({self.vp:getBounds()}, 
@@ -154,13 +154,21 @@ TestConcurrent.setUp = function(self)
     self.vp = viewport.new(1600, 900)
 end
 TestConcurrent.test_pan_while_scaled = function(self)
+    local x, y
     self.vp:setScale(4)
     assertEquals({self.vp:getBounds()}, {0,0, 400, 225})
-    assertEquals(self.vp:getPanRate(), 1)
+    assertEquals(self.vp:getPanRate(), 1) -- screen units per second
     
-    self.vp:pan(20, 5) -- h = sqrt(425) ~ 20.6155
-    self.vp:update(7)
-    local x, y = (20 / 425^0.5) * 28, (5 / 425^0.5) * 28
+    self.vp:pan(3, 4) -- h = 5
+    self.vp:update(4) -- at scale of 4, takes 4 seconds to move distance of 1
+    --x, y = 3/5, 4/5
+    --assertEquals({self.vp:getBounds()}, {x, y, 400+x, 225+y})
+    x,y,_,_ = self.vp:getBounds()
+    assertAlmostEquals(x, 3/5, 1e-12)
+    assertAlmostEquals(y, 4/5, 1e-12)
+    
+    self.vp:update(16.1) -- 5 * 4 - 4 + 0.1 : just over the time needed
+    x, y = 3, 4
     assertEquals({self.vp:getBounds()}, {x, y, 400+x, 225+y})
 end
 TestConcurrent.test_zoom_while_translated = function(self)
@@ -178,7 +186,40 @@ TestConcurrent.test_zoom_while_translated = function(self)
                   1600 / 2^0.5 - 1000, 900 / 2^0.5 + 100})
 end
 TestConcurrent.test_pan_and_zoom = function(self)
-    assert(false, 'todo')
+    local x, y, xmax, ymax
+    self.vp:setPanRate(10)
+    assertAlmostEquals(self.vp:getZoomRate(), 1, 1e-12)
+    
+    self.vp:pan(-100,0)
+    self.vp:update(0.5)
+    x,y = self.vp:getPosition()
+    -- assertEquals({self.vp:getPosition()}, {-5, 0})
+    assertAlmostEquals(x,-5, 1e-12)
+    assertAlmostEquals(y, 0, 1e-12)
+    
+    self.vp:zoom(1, 'center')
+    self.vp:update(0.5)
+    assertAlmostEquals(self.vp:getScale(), 2^0.5, 1e-12)
+    x, y, _, _ = self.vp:getBounds()
+    assertAlmostEquals(x, (800-800/2^0.5)-(5/2^0.5)-5, 1e-12)--225.77904114483
+    assertAlmostEquals(y,  450-450/2^0.5,              1e-12)
+    
+    self.vp:update(0.5)
+    assertAlmostEquals(self.vp:getScale(), 2, 1e-12)
+    x,y, xmax,ymax = self.vp:getBounds()
+    assertAlmostEquals(x, 400 - 5 - 5/2^0.5 - 5/2, 1e-12)--388.96446609407
+    assertAlmostEquals(y, 225, 1e-12)
+    assertAlmostEquals(xmax, x + 800, 1e-12)
+    assertAlmostEquals(ymax, y + 450, 1e-12)
+    
+    self.vp:update(9)
+    assertAlmostEquals(self.vp:getScale(), 2, 1e-12)
+    x,y, xmax,ymax = self.vp:getBounds()
+    assertAlmostEquals(x, 400 - 5 - 5/2^0.5 - 5/2 - 10/2*9, 1e-12)
+    assertAlmostEquals(y, 225, 1e-12)
+    assertAlmostEquals(xmax, x + 800, 1e-12)
+    assertAlmostEquals(ymax, y + 450, 1e-12)
+    --
 end
 
 
