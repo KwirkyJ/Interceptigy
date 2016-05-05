@@ -9,7 +9,7 @@ local DEFAULT_PRECISION = 1e-13
 
 
 local viewport = {_VERSION = '0.1.0',
-                  precsion = DEFAULT_PRECISION}
+                  precision = DEFAULT_PRECISION}
 
 ---Get the canonical dimensions of the viewport
 viewport.getDimensions = function(self)
