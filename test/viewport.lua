@@ -146,7 +146,15 @@ TestScale.test_zoom_is_relative = function(self)
     assertAlmostEquals(w, 500/10^0.4, 1e-10) -- ~ 199.05358527675
     assertAlmostEquals(h, 400/10^0.4, 1e-10) -- ~ 159.2428682214
 end
---TODO: supply a function specifying zoom behavior?
+TestScale.test_zoom_about_arbitrary_point = function(self)
+    local power = math.log(3) / math.log(2) -- log2(3) ~ 1.5849
+    self.vp:setPosition(100, 100)
+    self.vp:zoom(-power, 200, 100) -- this screen point does not move
+    self.vp:update(2)
+    assertAlmostEquals(self.vp:getScale(), 1/3, 1e-12)
+    assertEquals({self.vp:getBounds()}, {-300, -100, 1200, 1100})
+end
+--TODO: ? supply a function specifying zoom behavior
 
 
 TestConcurrent = {}

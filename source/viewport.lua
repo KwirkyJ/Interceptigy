@@ -65,8 +65,7 @@ end
 ---Transform the viewport in accordance with elapsed time (zoom, pan, -rotate-)
 viewport.update = function(self, dt)
     if self.zoomDelta then
-        local powerDelta, cenx, ceny = self.zoomRate * dt
-        cenx, ceny = self:getCenter()
+        local powerDelta = self.zoomRate * dt
         if self.zoomDelta < 0 then
             powerDelta = -powerDelta
         end
@@ -77,7 +76,8 @@ viewport.update = function(self, dt)
             self:setZoom(self.zoomPower + powerDelta)
             self.zoomDelta = self.zoomDelta - powerDelta
         end
-        if self.zoomCenter then self:setCenter(cenx, ceny) end
+        self.x = self.zoomCenter[2] - self.zoomCenter[1] / self.scale
+        self.y = self.zoomCenter[4] - self.zoomCenter[3] / self.scale
         if not zoomDelta then zoomCenter = false end
     end
     if self.transDMag then
@@ -86,9 +86,17 @@ viewport.update = function(self, dt)
                        mag * math.sin(self.transDTheta) / self.scale
         if math.abs(dx) >= math.abs(self.transDX) then
             self.x, self.y = self.x + self.transDX, self.y + self.transDY
+            if self.zoomCenter then 
+                self.zoomCenter[2] = self.zoomCenter[2] + self.transDX
+                self.zoomCenter[4] = self.zoomCenter[4] + self.transDY
+            end
             self.transDX, self.transDY, self.transDMag, self.transDTheta = false, false, false, false
         else
             self.x, self.y = self.x + dx, self.y + dy
+            if self.zoomCenter then 
+                self.zoomCenter[2] = self.zoomCenter[2] + dx
+                self.zoomCenter[4] = self.zoomCenter[4] + dy
+            end
             self.transDX = self.transDX - dx
             self.transDY = self.transDY - dy
         end
@@ -192,9 +200,20 @@ end
 ---Queue a zoom in updates; unit given is delta from current zoom level;
 -- can scale relative to center (default ULC)
 --TODO: ? flag absolute instead of delta
-viewport.zoom = function(self, delta, where)
+-- zoom(dx, dy)
+-- zoom(dx, dy, 'center')
+-- zoom(dx, dy, screenx, screeny)
+viewport.zoom = function(self, delta, where, wherey)
+    local wx, wy, sx, sy
     if where == 'center' then
-        self.zoomCenter = true
+        wx, wy = self:getCenter()
+        self.zoomCenter = {self.width / 2, wx, self.height / 2, wy}
+    elseif type(where) == 'number' and type(wherey) == 'number' then
+        sx, sy = where, wherey
+        wx, wy = self:getWorldPoint(where, wherey)
+        self.zoomCenter = {sx, wx, sy, wy}
+    else
+        self.zoomCenter = {0, self.x, 0, self.y}
     end
     self.zoomDelta = delta
 end
