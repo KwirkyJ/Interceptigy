@@ -16,7 +16,7 @@ local es
 local winx, winy
 local starttime, time_elapsed
 local camera
-local version
+local version = {love.getVersion()}
 
 local function element_get_position(self, t)
     assert(type(t) == 'number')
@@ -42,8 +42,8 @@ local function new_element(colortable)
 end
 
 function love.load()
-    local j, n, r, c = love.getVersion()
-    version = {major = j, minor = n, revision = r, codename = c}
+    --local j, n, r, c = love.getVersion()
+    --version = {major = j, minor = n, revision = r, codename = c}
     starttime = getTime()
     time_elapsed = 0
     winx, winy = lg.getDimensions()
@@ -65,9 +65,12 @@ function love.keypressed(key)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    --if version.minor == 9 then
-    if lm.isDown('r') or lm.isDown(2) then -- TODO: check 0.9/0.10 compatability?
-        if lm.isDown('l') or lm.isDown(1) then
+    local rmb, lmb = 2, 1
+    if version[2] == 9 then
+        rmb, lmb = 'r', 'l'
+    end
+    if lm.isDown(rmb) then
+        if lm.isDown(lmb) or lm.isDown(1) then
             local zl = camera:getZoom()
             camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT, 'center')
         else
@@ -76,8 +79,17 @@ function love.mousemoved(x, y, dx, dy)
             camera:setPosition(-dx / scale, -dy / scale, true)
         end
     end
-    -- lm.isDown(1) -? left-click?
-    -- lm.isDown(2) -> right-click?
+end
+
+if version[2] > 9 then
+    function love.wheelmoved(x, y)
+        if x > 0 then print('wheel x > 0')
+        elseif x < 0 then print('wheel x < 0')
+        end
+        if y > 0 then print('wheel y > 0')
+        elseif y < 0 then print('wheel y < 0')
+        end
+    end
 end
 
 function love.update(dt)
