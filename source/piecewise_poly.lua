@@ -124,6 +124,8 @@ local function root(self, v)
                 then roots[#roots+1] = t2
                 end
             end
+        else 
+            error('degree is higher than maximum supported')
         end
     end
     return roots
