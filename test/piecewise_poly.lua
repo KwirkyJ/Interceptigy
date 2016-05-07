@@ -1,7 +1,7 @@
 -- spec and unit-test for the piecewise Polynomial class/module
 
 local piecewise = require 'source.piecewise_poly'
-local luaunit = require 'luaunit.luaunit'
+local luaunit   = require 'luaunit.luaunit'
 
 local pp, tmp
 
@@ -16,10 +16,14 @@ TestPolynomial.test_empty = function(self)
 end
 TestPolynomial.test_addition_errors = function(self)
     local p = piecewise.Polynomial()
-    assertError(p.add, p, nil, {5, 3}, 'must have starting time')
-    assertError(p.add, p, '3', {3}, 'start time must be number')
-    assertError(p.add, p, 3, '5', 'coefficients must be table')
-    assertError(p.add, p, 3, {}, 'coefficients cannot be empty')
+    assertError('must have starting time', nil,
+                p.add, p, nil, {5, 3})
+    assertError('start time must be number', nil,
+                p.add, p, '3', {3})
+    assertError('coefficients must be table', nil,
+                p.add, p, 3, '5')
+    assertError('coefficients cannot be empty', nil,
+                p.add, p, 3, {})
 end
 TestPolynomial.test_one_piece = function(self)
     local p = piecewise.Polynomial()
@@ -46,11 +50,11 @@ TestPolynomial.test_more_pieces = function(self)
 end
 TestPolynomial.test_clearBefore = function(self)
     local p = piecewise.Polynomial()
-    p:add(0, {1, -2}) -- for t≤0 return (1*t - 2)
+    p:add(0, {1, -2}) -- for t>=0 return (1*t - 2)
     p:add(2, {8})
     p:add(3, {-0.5, 3, 0, 2}) -- -1/2*t^3 + 3*t^2 + 0*t + 2 
-    p:clearBefore(2.2)
     
+    p:clearBefore(2.2)
     assertEquals(p:getStarts(), {2.2, 3}, 'clearBefore should trim')
     assertEquals(p(2.99), 8)
     assertEquals(p(3), -0.5*3^3 + 3*3^2 + 2)
@@ -58,21 +62,23 @@ TestPolynomial.test_clearBefore = function(self)
 end
 TestPolynomial.test_equality = function(self)
     local p1, p2 = piecewise.Polynomial(), piecewise.Polynomial()
-    assertNotEquals(p1, nil)
-    assertNotEquals(p1, {})
-    assertEquals(p1, p2) --, 'unique empty instances')
+    assert(not piecewise.areEqual(p1, nil))
+    assert(not piecewise.areEqual(p1,  {}))
+    assert(piecewise.areEqual(p1, p2), 'unique instances')
+    assert(p1 == p2, 'metatable allows ==')
     
     p1:add(3, {4, 0, -0.32, 0})
-    assertNotEquals(p1, p2)
+    assert(not piecewise.areEqual(p1, p2))
+    assert(p1 ~= p2)
     
     p2:add(3, {4, 0, -0.32, 0})
-    assertEquals(p1, p2)
-    assertEquals(piecewise.areEqual(p1, p2), true)
+    assert(piecewise.areEqual(p1, p2))
+    assert(p1 == p2)
     
     p1:add(4, {3, 2})
     p2:add(4, {2, 3})
-    assertNotEquals(p1, p2)
-    assertEquals(piecewise.areEqual(p1, p2), false)
+    assert(p1 ~= p2)
+    assert(not piecewise.areEqual(p1, p2))
 end
 
 
