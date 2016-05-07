@@ -11,12 +11,8 @@ local function addPiece(self, t1, coeffs)
     assert(#coeffs > 0)
     local pieces = self[1]
     
-    local leading_zeroes = 0
-    for i=1, #coeffs do
-        if coeffs[i] ~= 0 then break end
-        leading_zeroes = leading_zeroes + 1
-    end
-    for i=1, leading_zeroes do
+    while coeffs[1] == 0 do
+        -- remove any leading zeroes
         table.remove(coeffs, 1)
     end
     
