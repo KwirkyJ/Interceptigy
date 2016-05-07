@@ -62,7 +62,9 @@ TestPolynomial.test_clearBefore = function(self)
 end
 TestPolynomial.test_equality = function(self)
     local p1, p2 = piecewise.Polynomial(), piecewise.Polynomial()
-    assert(not piecewise.areEqual(p1, nil))
+    assertError(piecewise.areEqual, p1, nil)
+    assert(p1 ~= nil)
+    --assert(not piecewise.areEqual(p1, nil))
     assert(not piecewise.areEqual(p1,  {}))
     assert(piecewise.areEqual(p1, p2), 'unique instances')
     assert(p1 == p2, 'metatable allows ==')
@@ -92,7 +94,7 @@ TestRoot.test_empty = function(self)
 end
 TestRoot.test_constant = function(self)
     self.p:add(-1, {4})
-    assertEquals(self.p:root(0), {})
+    assertEquals(self.p:root(0), {}, 'no root at 0')
     assertEquals(self.p:root(4), {{-1, math.huge}},
                  'constant match has range of roots')
 end
@@ -117,10 +119,10 @@ TestRoot.test_linear_over_domain = function(self)
     assertEquals(self.p:root(), {})
 end
 TestRoot.test_linear_pieces = function(self)
-    self.p:add(-5, {1, 3})
-    self.p:add(2, {1, -10})
+    self.p:add(-5, {1, 3}) -- root at -3
+    self.p:add(2, {1, -11}) -- root at 11
     self.p:add(13, {0.5, -5}) -- root at 10, below piece's domain
-    assertEquals(self.p:root(0), {-3, 10})
+    assertEquals(self.p:root(0), {-3, 11})
 end
 TestRoot.test_quadratic_noroot = function(self)
     self.p:add(-3, {1, 0, 1}) -- x^2 + 1
@@ -154,9 +156,11 @@ TestRoot.test_multiple_pieces = function(self)
                   480^0.5, -- ~21.9
                  })
 end
---TestRoot.test_cubic = function(self)
--- cubic-plus is not supported
---end
+TestRoot.test_cubic = function(self)
+    self.p:add(2, {3, -3, 0.667, -7.5})
+    assertError('cubic is not supported', nil,
+                self.p.root, self.p, 0)
+end
 TestRoot.test_value_typecheck = function(self)
     self.p:add(math.random(10), {1,1,1})
     for _,v in ipairs({true, {}, function() return 3 end, 'string'}) do
