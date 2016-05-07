@@ -39,16 +39,14 @@ end
 
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
 local function clearBefore(self, t)
-    local pieces, newpieces = self[1], {}
-    for i=#pieces, 1, -1 do
-        if t <= pieces[i][1] then
-            table.insert(newpieces, 1, pieces[i])
-        elseif t > pieces[i][1] then
-            table.insert(newpieces, 1, {t, pieces[i][2]})
+    for _=1, #self[1] do
+        if not self[1][2] or self[1][2][1] >= t then
+            self[1][1][1] = t
             break
+        else
+            table.remove(self[1], 1) -- cull piece
         end
     end
-    self[1] = newpieces
 end
 
 ---Get table of time indices for the individual pieces.
