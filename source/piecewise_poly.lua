@@ -11,8 +11,7 @@ local function addPiece(self, t1, coeffs)
     assert(#coeffs > 0)
     local pieces = self[1]
     
-    while coeffs[1] == 0 do
-        -- remove any leading zeroes
+    while coeffs[1] == 0 do -- remove any leading zeroes
         table.remove(coeffs, 1)
     end
     
@@ -36,7 +35,7 @@ end
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
 local function clearBefore(self, t)
     for _=1, #self[1] do
-        if not self[1][2] or self[1][2][1] >= t then
+        if not self[1][2] or self[1][2][1] > t then
             self[1][1][1] = t
             break
         else
