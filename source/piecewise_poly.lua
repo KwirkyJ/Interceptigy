@@ -131,6 +131,27 @@ local function root(self, v)
     return roots
 end
 
+---Get polynomial derivative of the given function (for all pieces)
+-- derivative of constants is zero
+local function getDerivatives(self)
+    local d, piece, coeff, degree, dc = piecewise.Polynomial()
+    for i=1, #self[1] do
+        piece = self[1][i]
+        degree = #piece[2]
+        if degree == 1 then 
+            dc = {0}
+        else
+            dc = {}
+            for j=1, degree-1 do
+                coeff = piece[2][j]
+                dc[#dc+1] = coeff * (degree-j)
+            end
+        end
+        d:add(piece[1], dc)
+    end
+    return d
+end
+
 ---Stand-in for '=='
 piecewise.areEqual = function(p1, p2)
     if not (type(p1[1]) == 'table')
@@ -147,11 +168,12 @@ end
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {{},
-                add         = addPiece,
-                clearBefore = clearBefore,
-                getStarts   = getStarts,
-                evaluate    = evaluate,
-                root        = root,
+                add            = addPiece,
+                clearBefore    = clearBefore,
+                evaluate       = evaluate,
+                getStarts      = getStarts,
+                getDerivatives = getDerivatives,
+                root           = root,
                }
     local mt = {__call = evaluate,
                 __eq   = piecewise.areEqual,

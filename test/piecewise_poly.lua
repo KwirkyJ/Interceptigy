@@ -119,9 +119,9 @@ TestRoot.test_linear_over_domain = function(self)
     assertEquals(self.p:root(), {})
 end
 TestRoot.test_linear_pieces = function(self)
-    self.p:add(-5, {1, 3}) -- root at -3
-    self.p:add(2, {1, -11}) -- root at 11
-    self.p:add(13, {0.5, -5}) -- root at 10, below piece's domain
+    self.p:add(-5, {1,   3}) -- root at -3
+    self.p:add( 2, {2, -22}) -- root at 11
+    self.p:add(13, {0.5,-5}) -- root at 10, below piece's domain
     assertEquals(self.p:root(0), {-3, 11})
 end
 TestRoot.test_quadratic_noroot = function(self)
@@ -168,6 +168,27 @@ TestRoot.test_value_typecheck = function(self)
                     self.p.root, self.p, v)
     end
 end
+
+TestDerive = {}
+TestDerive.setUp = function(self)
+    self.p = piecewise.Polynomial()
+end
+TestDerive.test_empty = function(self)
+    assertEquals(self.p:getDerivatives(), piecewise.Polynomial())
+end
+TestDerive.test_pieces = function(self)
+    self.p:add( 3, {5,  0, 0, 0.5, 2})
+    self.p:add(20, {          3, -12})
+    self.p:add(22, {             120})
+    self.p:add(30, {      -4, 1,   1})
+    local e = piecewise.Polynomial()
+    e:add( 3, {20, 0, 0, 0.5})
+    e:add(20, {          3})
+    e:add(22, {          0})
+    e:add(30, {      -8, 1})
+    assertEquals(self.p:getDerivatives(), e)
+end
+
 
 
 --print('==== TEST PIECEWISE POLYNOMIAL PASSED ====')
