@@ -158,6 +158,76 @@ piecewise.areEqual = function(p1, p2)
     return true
 end
 
+---return a table interlacing the start times of the two pieces
+piecewise.interlace = function(p1, p2)
+    local t = {}
+    local i1, i2, end1, end2 = 1, 1, false, false
+    while true do
+        local piece1, piece2 = p1[1][i1], p2[1][i2]
+        if end1 and end2 then break
+        elseif not piece1 then 
+            if not piece2 then break end
+            i1, end1 = #p1[1], true
+            t[#t+1] = piece2[1]
+            i2 = i2+1
+        elseif not piece2 then
+            i2, end2 = #p2[1], true
+            t[#t+1] = piece1[1]
+            i1 = i1+1
+        elseif piece1[1] < piece2[1] then
+            t[#t+1] = piece1[1]
+            i1 = i1+1
+        elseif piece1[1] == piece2[1] then
+            t[#t+1] = piece1[1]
+            i1, i2 = i1+1, i2+1
+        else -- piece1[1] > piece2[1]
+            t[#t+1] = piece2[1]
+            i2 = i2+1
+        end
+        end1 = end1 or i1 > #p1[1]
+        end2 = end2 or i2 > #p2[1]
+    end
+    return t
+end
+
+---return the subtracted coefficients of the provided pieces
+local function subcoeffs(c1, c2)
+    local subcoeffs, nxt = {}, 1
+    local i1, i2 = 1, 1
+    while #c1-i1+1 < #c2-i2+1 do
+        subcoeffs[nxt] = -c2[i2]
+        i2, nxt = i2+1, nxt+1
+    end
+    while #c1-i1+1 > #c2-i2+1 do
+        subcoeffs[nxt] = c1[i1]
+        i1, nxt = i1+1, nxt+1
+    end
+    while c1[i1] do
+        subcoeffs[nxt] = c1[i1] - c2[i2]
+        i1, i2, nxt = i1+1, i2+1, nxt+1
+    end
+    return subcoeffs
+end
+
+---Get the function resulting from subtracting two functions from one another
+piecewise.subtract = function(p1, p2)
+    local s = piecewise.Polynomial()
+    local starts, i1, i2 = piecewise.interlace(p1, p2), 1, 1
+    for i,t in ipairs(starts) do
+        if p1[1][i1][1] > t and not p1(t) then
+            s:add(t, p2[1][i2][2])
+        elseif p1[1][i1][1] >= t and not p2(t) then
+            s:add(t, p1[1][i1][2])
+        else
+            s:add(t, subcoeffs(p1[1][i1][2], p2[1][i2][2]))
+        end
+        if not starts[i+1] then break end
+        if p1[1][i1+1] and p1[1][i1+1][1] <= starts[i+1] then i1=i1+1 end
+        if p2[1][i2+1] and p2[1][i2+1][1] <= starts[i+1] then i2=i2+1 end
+    end
+    return s
+end
+
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {{},
