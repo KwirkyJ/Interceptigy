@@ -126,7 +126,7 @@ end
 
 ---Get polynomial derivative of the given function (for all pieces)
 -- derivative of constants is zero
-local function getDerivatives(self)
+local function getDerivative(self)
     local d, piece, coeff, degree, dc = piecewise.Polynomial()
     for i=1, #self[1] do
         piece = self[1][i]
@@ -231,12 +231,12 @@ end
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {{},
-                add            = addPiece,
-                clearBefore    = clearBefore,
-                evaluate       = evaluate,
-                getStarts      = getStarts,
-                getDerivatives = getDerivatives,
-                root           = root,
+                add           = addPiece,
+                clearBefore   = clearBefore,
+                evaluate      = evaluate,
+                getStarts     = getStarts,
+                getDerivative = getDerivative,
+                root          = root,
                }
     local mt = {__call = evaluate,
                 __eq   = piecewise.areEqual,

@@ -211,7 +211,7 @@ TestDerive.setUp = function(self)
     self.p = piecewise.Polynomial()
 end
 TestDerive.test_empty = function(self)
-    assertEquals(self.p:getDerivatives(), piecewise.Polynomial())
+    assertEquals(self.p:getDerivative(), piecewise.Polynomial())
 end
 TestDerive.test_pieces = function(self)
     self.p:add( 3, {5,  0, 0, 0.5, 2})
@@ -223,7 +223,7 @@ TestDerive.test_pieces = function(self)
     e:add(20, {          3})
     e:add(22, {          0})
     e:add(30, {      -8, 1})
-    assertEquals(self.p:getDerivatives(), e)
+    assertEquals(self.p:getDerivative(), e)
 end
 
 
