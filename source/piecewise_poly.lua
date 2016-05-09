@@ -9,37 +9,37 @@ local function addPiece(self, t1, coeffs)
     assert(type(t1) == 'number')
     assert(type(coeffs) == 'table')
     assert(#coeffs > 0)
-    local pieces = self[1]
+    --local pieces = self[1]
     
     while coeffs[1] == 0 do -- remove any leading zeroes
         table.remove(coeffs, 1)
     end
     
-    if not pieces[1] then
-        pieces[1] = {t1, coeffs}
+    if not self[1] then
+        self[1] = {t1, coeffs}
     else
         local added = false
-        for i=1, #pieces do
-            if t1 < pieces[i][1] then
-                table.insert(pieces, i, {t1, coeffs})
+        for i=1, #self do
+            if t1 < self[i][1] then
+                table.insert(self, i, {t1, coeffs})
                 added = true
                 break
             end
         end
         if not added then
-            pieces[#pieces+1] = {t1, coeffs}
+            self[#self+1] = {t1, coeffs}
         end
     end
 end
 
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
 local function clearBefore(self, t)
-    for _=1, #self[1] do
-        if not self[1][2] or self[1][2][1] > t then
-            self[1][1][1] = t
+    for _=1, #self do
+        if not self[2] or self[2][1] > t then
+            self[1][1] = t
             break
         else
-            table.remove(self[1], 1) -- cull piece
+            table.remove(self, 1) -- cull piece
         end
     end
 end
@@ -47,15 +47,15 @@ end
 ---Get table of time indices for the individual pieces.
 local function getStarts(self)
     local t = {}
-    for i=1, #self[1] do
-        t[i] = self[1][i][1]
+    for i=1, #self do
+        t[i] = self[i][1]
     end
     return t
 end
 
 ---Find value of the polynomial at a given 'time'.
 local function evaluate(self, t)
-    local pieces = self[1]
+    local pieces = self--[1]
     if not pieces[1] or t < pieces[1][1] then return nil end
     local v, coeffs = 0
     for i=#pieces, 1, -1 do
@@ -75,11 +75,11 @@ end
 local function root(self, v)
     v = v or 0
     assert(type(v) == 'number', 'value must be number, was: '..type(v))
-    if not self[1][1] then return {} end
+    if not self[1] then return {} end
     local roots, t_start, t_stop, t, coeffs = {}
-    for i=1, #self[1] do
-        t_start, coeffs = self[1][i][1], self[1][i][2]
-        if self[1][i+1] then t_stop = self[1][i+1][1]
+    for i=1, #self do
+        t_start, coeffs = self[i][1], self[i][2]
+        if self[i+1] then t_stop = self[i+1][1]
         else t_stop = math.huge
         end
         --assert(type(t_start) == 'number')
@@ -128,8 +128,8 @@ end
 -- derivative of constants is zero
 local function getDerivative(self)
     local d, piece, coeff, degree, dc = piecewise.Polynomial()
-    for i=1, #self[1] do
-        piece = self[1][i]
+    for i=1, #self do
+        piece = self[i]
         degree = #piece[2]
         if degree == 1 then 
             dc = {0}
@@ -147,11 +147,9 @@ end
 
 ---Stand-in for '=='
 piecewise.areEqual = function(p1, p2)
-    if not (type(p1[1]) == 'table')
-    or not (type(p2[1]) == 'table')
-    or not p1.getStarts
+    if not p1.getStarts
     or not p2.getStarts
-    or not moretables.alike(p1[1], p2[1])
+    or not moretables.alike(p1, p2)
     then 
         return false
     end
@@ -163,15 +161,15 @@ piecewise.interlace = function(p1, p2)
     local t = {}
     local i1, i2, end1, end2 = 1, 1, false, false
     while true do
-        local piece1, piece2 = p1[1][i1], p2[1][i2]
+        local piece1, piece2 = p1[i1], p2[i2]
         if end1 and end2 then break
         elseif not piece1 then 
             if not piece2 then break end
-            i1, end1 = #p1[1], true
+            i1, end1 = #p1, true
             t[#t+1] = piece2[1]
             i2 = i2+1
         elseif not piece2 then
-            i2, end2 = #p2[1], true
+            i2, end2 = #p2, true
             t[#t+1] = piece1[1]
             i1 = i1+1
         elseif piece1[1] < piece2[1] then
@@ -184,8 +182,8 @@ piecewise.interlace = function(p1, p2)
             t[#t+1] = piece2[1]
             i2 = i2+1
         end
-        end1 = end1 or i1 > #p1[1]
-        end2 = end2 or i2 > #p2[1]
+        end1 = end1 or i1 > #p1
+        end2 = end2 or i2 > #p2
     end
     return t
 end
@@ -214,24 +212,23 @@ piecewise.subtract = function(p1, p2)
     local s = piecewise.Polynomial()
     local starts, i1, i2 = piecewise.interlace(p1, p2), 1, 1
     for i,t in ipairs(starts) do
-        if p1[1][i1][1] > t and not p1(t) then
-            s:add(t, p2[1][i2][2])
-        elseif p1[1][i1][1] >= t and not p2(t) then
-            s:add(t, p1[1][i1][2])
+        if p1[i1][1] > t and not p1(t) then
+            s:add(t, p2[i2][2])
+        elseif p1[i1][1] >= t and not p2(t) then
+            s:add(t, p1[i1][2])
         else
-            s:add(t, subcoeffs(p1[1][i1][2], p2[1][i2][2]))
+            s:add(t, subcoeffs(p1[i1][2], p2[i2][2]))
         end
         if not starts[i+1] then break end
-        if p1[1][i1+1] and p1[1][i1+1][1] <= starts[i+1] then i1=i1+1 end
-        if p2[1][i2+1] and p2[1][i2+1][1] <= starts[i+1] then i2=i2+1 end
+        if p1[i1+1] and p1[i1+1][1] <= starts[i+1] then i1=i1+1 end
+        if p2[i2+1] and p2[i2+1][1] <= starts[i+1] then i2=i2+1 end
     end
     return s
 end
 
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
-    local pp = {{},
-                add           = addPiece,
+    local pp = {add           = addPiece,
                 clearBefore   = clearBefore,
                 evaluate      = evaluate,
                 getStarts     = getStarts,
