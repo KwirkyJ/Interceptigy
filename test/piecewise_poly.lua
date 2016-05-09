@@ -225,6 +225,14 @@ TestDerive.test_pieces = function(self)
     e:add(30, {      -8, 1})
     assertEquals(self.p:getDerivative(), e)
 end
+TestDerive.test_getGrowth_empty = function(self)
+    assertNil(self.p:getGrowth(2.2))
+end
+TestDerive.test_getGrowth = function(self)
+    self.p:add(2.5, {-1.2, 8, 3})
+    assertNil(self.p:getGrowth(2.2))
+    assertAlmostEquals(self.p:getGrowth(6), -2.4*6 + 8, 1e-12)
+end
 
 
 

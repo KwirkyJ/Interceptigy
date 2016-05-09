@@ -124,23 +124,52 @@ local function root(self, v)
     return roots
 end
 
+local function getGrowth(self, t)
+    for _,piece in ipairs(self) do
+        if piece[i] < t then 
+            return nil
+        end
+    end
+    return nil
+end
+
+---Get the derivative of a piece by its coefficients
+-- if no time t is provided, returns a table of new coefficients;
+-- else solves resulting polynomial at time t and returns number
+local function derivePiece(coeffs, t)
+    local degree, dc, newc = #coeffs, {}
+    if t then dc = 0 end
+    if degree == 1 then 
+        if not t then dc = {0} end
+    else
+        for i=1, degree-1 do
+            newc = coeffs[i] * (degree-i)
+            if t then
+                dc = dc * t + newc
+            else
+                dc[#dc+1] = newc
+            end
+        end
+    end
+    return dc
+end
+
+---Get the instantaneous derivative at time t
+local function getGrowth(self, t)
+    for _,piece in ipairs(self) do
+        if piece[1] < t then 
+            return derivePiece(piece[2], t)
+        end
+    end
+    return nil
+end
+
 ---Get polynomial derivative of the given function (for all pieces)
 -- derivative of constants is zero
 local function getDerivative(self)
-    local d, piece, coeff, degree, dc = piecewise.Polynomial()
-    for i=1, #self do
-        piece = self[i]
-        degree = #piece[2]
-        if degree == 1 then 
-            dc = {0}
-        else
-            dc = {}
-            for j=1, degree-1 do
-                coeff = piece[2][j]
-                dc[#dc+1] = coeff * (degree-j)
-            end
-        end
-        d:add(piece[1], dc)
+    local d = piecewise.Polynomial()
+    for _, piece in ipairs(self) do
+        d:add(piece[1], derivePiece(piece[2]))
     end
     return d
 end
@@ -231,8 +260,9 @@ piecewise.Polynomial = function()
     local pp = {add           = addPiece,
                 clearBefore   = clearBefore,
                 evaluate      = evaluate,
-                getStarts     = getStarts,
                 getDerivative = getDerivative,
+                getGrowth     = getGrowth,
+                getStarts     = getStarts,
                 root          = root,
                }
     local mt = {__call = evaluate,
