@@ -100,23 +100,25 @@ TestAreEquals.test_equality = function(self)
     local p1, p2 = piecewise.Polynomial(), piecewise.Polynomial()
     assertError(piecewise.areEqual, p1, nil)
     assert(p1 ~= nil)
-    --assert(not piecewise.areEqual(p1, nil))
+    
     assert(not piecewise.areEqual(p1,  {}))
+    assert(p1 ~= {})
+    
     assert(piecewise.areEqual(p1, p2), 'unique instances')
     assert(p1 == p2, 'metatable allows ==')
     
-    p1:insert(3, {4, 0, -0.32, 0})
+    p1:insert(3, 4, 0, -0.32, 0)
     assert(not piecewise.areEqual(p1, p2))
     assert(p1 ~= p2)
     
-    p2:insert(3, {4, 0, -0.32, 0})
+    p2:insert(3, 4, 0, -0.32, 0)
     assert(piecewise.areEqual(p1, p2))
     assert(p1 == p2)
     
-    p1:insert(4, {3, 2})
-    p2:insert(4, {2, 3})
-    assert(p1 ~= p2)
+    p1:insert(4, 3, 2)
+    p2:insert(4, 2, 3)
     assert(not piecewise.areEqual(p1, p2))
+    assert(p1 ~= p2)
 end
 
 TestInterlace = {}
