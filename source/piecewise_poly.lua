@@ -261,9 +261,10 @@ piecewise.Polynomial = function()
                 evaluate      = piecewise.evaluate,
                 getDerivative = piecewise.getDerivative,
                 getGrowth     = piecewise.getGrowth,
+                getRoots      = piecewise.getRoots,
                 getStarts     = piecewise.getStarts,
                 interlace     = piecewise.interlace,
-                getRoots      = piecewise.getRoots,
+                subtract      = piecewise.subtract,
                }
     local mt = {__call = piecewise.evaluate,
                 __eq   = piecewise.areEqual,

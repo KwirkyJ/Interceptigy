@@ -165,6 +165,7 @@ TestOperations.test_subtract = function(self)
     expected:insert(3, { 2, 3, 0.5,-0.5})
     expected:insert(4, {-3, 0, 3,  -4})
     assertEquals(piecewise.subtract(p1, p2), expected)
+    assertEquals(p1:subtract(p2), expected)
 end
 
 
