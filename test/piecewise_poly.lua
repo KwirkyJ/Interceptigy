@@ -17,7 +17,6 @@ TestInsertAndEvaluate.test_evaluate_empty = function(self)
     end
 end
 TestInsertAndEvaluate.test_insert_errors = function(self)
-    --local p = piecewise.Polynomial()
     assertError('must have starting time', nil,
                 self.p.insert, self.p, nil, {5, 3})
     assertError('start time must be number', nil,
@@ -28,7 +27,6 @@ TestInsertAndEvaluate.test_insert_errors = function(self)
                 self.p.insert, self.p, 3, {})
 end
 TestInsertAndEvaluate.test_one_piece = function(self)
-    --local p = piecewise.Polynomial()
     self.p:insert(0, {1, -2})
     
     assertEquals(self.p:getStarts(), {0}, 
@@ -43,35 +41,48 @@ TestInsertAndEvaluate.test_one_piece = function(self)
                 'module call to evaluate')
 end
 TestInsertAndEvaluate.test_insert_module_alias = function(self)
-    --local p = piecewise.Polynomial()
     piecewise.insert(self.p, 0, {1, 2})
     assertAlmostEquals(self.p(5), 5*1 + 2, 1e-12)
 end
 TestInsertAndEvaluate.test_insert_vararg_coefficients = function(self)
-    --local p = piecewise.Polynomial()
     self.p:insert(0, -7, 2)
     assertAlmostEquals(self.p(5), 5*(-7) + 2, 1e-12)
 end
 TestInsertAndEvaluate.test_more_pieces = function(self)
-    --local p = piecewise.Polynomial()
     self.p:insert(3,  -0.5, 3, 0, 2)
     self.p:insert(0,           1,-2) -- added before extant
     self.p:insert(2.2,            8) -- inserted between extant
     
     assertEquals(self.p:getStarts(), {0,2.2,3}, 
-                 'three additions should self-order')
+                 'three additions should self-order by startig time')
     assertNil(self.p(-1), 'pre-start must be undefined')
     assertEquals(self.p(1), -1, 'first piece domain; 1*1 - 2')
     assertEquals(self.p(2.5), 8, 'inserted linear function')
     assertAlmostEquals(self.p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
 end
 
+TestGetStarts = {}
+TestGetStarts.setUp = function(self)
+    self.p = piecewise.Polynomial()
+end
+TestGetStarts.test_empty = function(self)
+    assertEquals(self.p:getStarts(), {}, 'empty polynomial has no starts')
+    assertEquals(piecewise.getStarts(self.p), {}, 'module call')
+end
+TestGetStarts.test_with_pieces = function(self)
+    self.p:insert(0,    3,-2)
+    self.p:insert(-4.3, 3, 1)
+    self.p:insert(8,       7)
+    self.p:insert(5,   -3,-2)
+    assertEquals(self.p:getStarts(), {-4.3,0,5,8}, 'order by starting time')
+end
+
 TestClearBefore = {}
 TestClearBefore.test_clearBefore = function(self)
     local p = piecewise.Polynomial()
-    p:insert(0, {1, -2}) -- for t>=0 return (1*t - 2)
-    p:insert(2, {8})
-    p:insert(3, {-0.5, 3, 0, 2}) -- -1/2*t^3 + 3*t^2 + 0*t + 2 
+    p:insert(0,          1,-2) -- for t>=0 return (1*t - 2)
+    p:insert(2,             8)
+    p:insert(3, -0.5, 3, 0, 2) -- -1/2*t^3 + 3*t^2 + 0*t + 2 
     
     p:clearBefore(2.2)
     assertEquals(p:getStarts(), {2.2, 3}, 'clearBefore should trim')

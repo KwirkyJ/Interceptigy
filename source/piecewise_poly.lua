@@ -53,11 +53,12 @@ local function clearBefore(self, t)
     end
 end
 
----Get table of time indices for the individual pieces.
-local function getStarts(self)
+---Get table of time indices for the individual pieces
+-- ordered by starting time (least to greatest).
+piecewise.getStarts = function(P)
     local t = {}
-    for i=1, #self do
-        t[i] = self[i][1]
+    for i=1, #P do
+        t[i] = P[i][1]
     end
     return t
 end
@@ -261,7 +262,7 @@ piecewise.Polynomial = function()
                 evaluate      = piecewise.evaluate,
                 getDerivative = getDerivative,
                 getGrowth     = getGrowth,
-                getStarts     = getStarts,
+                getStarts     = piecewise.getStarts,
                 root          = root,
                }
     local mt = {__call = piecewise.evaluate,
