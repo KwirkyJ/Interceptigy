@@ -6,6 +6,9 @@ local luaunit   = require 'luaunit.luaunit'
 
 
 TestInsertAndEvaluate = {}
+TestInsertAndEvaluate.setUp = function(self)
+    self.p = piecewise.Polynomial()
+end
 TestInsertAndEvaluate.test_evaluate_empty = function(self)
     local p
     for i=1, 100 do
@@ -14,48 +17,53 @@ TestInsertAndEvaluate.test_evaluate_empty = function(self)
     end
 end
 TestInsertAndEvaluate.test_insert_errors = function(self)
-    local p = piecewise.Polynomial()
+    --local p = piecewise.Polynomial()
     assertError('must have starting time', nil,
-                p.insert, p, nil, {5, 3})
+                self.p.insert, self.p, nil, {5, 3})
     assertError('start time must be number', nil,
-                p.insert, p, '3', {3})
+                self.p.insert, self.p, '3', {3})
     assertError('coefficients must be table or only-numbers', nil,
-                p.insert, p, 3, 0.2, '5', -7)
+                self.p.insert, self.p, 3, 0.2, '5', -7)
     assertError('coefficients table cannot be empty', nil,
-                p.insert, p, 3, {})
+                self.p.insert, self.p, 3, {})
 end
 TestInsertAndEvaluate.test_one_piece = function(self)
-    local p = piecewise.Polynomial()
-    p:insert(0, {1, -2})
+    --local p = piecewise.Polynomial()
+    self.p:insert(0, {1, -2})
     
-    assertEquals( p:getStarts(), {0}, 'confirm one piece which starts at zero')
-    assertNil(p:evaluate(-1), 'pre-start should be undefined')
-    assertEquals(p:evaluate(0), -2, 'f(0) -> 1*(0) + -2 -> -2')
-    assertEquals(p:evaluate(5),  3, 'f(5) -> 1*(5) + -2 ->  3')
+    assertEquals(self.p:getStarts(), {0}, 
+                 'confirm one piece which starts at zero')
+    assertNil(self.p:evaluate(-1), 'pre-start should be undefined')
+    assertEquals(self.p:evaluate(0), -2, 'f(0) -> 1*(0) + -2 -> -2')
+    assertEquals(self.p:evaluate(5),  3, 'f(5) -> 1*(5) + -2 ->  3')
     
-    assertEquals(p(5), p:evaluate(5), 'metatable call as alias for evaluate')
+    assertEquals(self.p(5), self.p:evaluate(5), 
+                'metatable call as alias for evaluate')
+    assertEquals(piecewise.evaluate(self.p, 5), self.p:evaluate(5), 
+                'module call to evaluate')
 end
 TestInsertAndEvaluate.test_insert_module_alias = function(self)
-    local p = piecewise.Polynomial()
-    piecewise.insert(p, 0, {1, 2})
-    assertAlmostEquals(p(5), 5*1 + 2, 1e-12)
+    --local p = piecewise.Polynomial()
+    piecewise.insert(self.p, 0, {1, 2})
+    assertAlmostEquals(self.p(5), 5*1 + 2, 1e-12)
 end
-TestInsertAndEvaluate.test_vararg_coefficients = function(self)
-    local p = piecewise.Polynomial()
-    piecewise.insert(p, 0, -7, 2)
-    assertAlmostEquals(p(5), 5*(-7) + 2, 1e-12)
+TestInsertAndEvaluate.test_insert_vararg_coefficients = function(self)
+    --local p = piecewise.Polynomial()
+    self.p:insert(0, -7, 2)
+    assertAlmostEquals(self.p(5), 5*(-7) + 2, 1e-12)
 end
 TestInsertAndEvaluate.test_more_pieces = function(self)
-    local p = piecewise.Polynomial()
-    p:insert(3, {-0.5, 3, 0, 2})
-    p:insert(0, {1, -2}) -- added before extant
-    p:insert(2.2, {8})   -- inserted between extant
+    --local p = piecewise.Polynomial()
+    self.p:insert(3,  -0.5, 3, 0, 2)
+    self.p:insert(0,           1,-2) -- added before extant
+    self.p:insert(2.2,            8) -- inserted between extant
     
-    assertEquals(p:getStarts(), {0,2.2,3}, 'three additions should self-order')
-    assertNil(p(-1), 'pre-start must be undefined')
-    assertEquals(p(1), -1, 'first piece domain; 1*1 - 2')
-    assertEquals(p(2.5), 8, 'inserted linear function')
-    assertAlmostEquals(p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
+    assertEquals(self.p:getStarts(), {0,2.2,3}, 
+                 'three additions should self-order')
+    assertNil(self.p(-1), 'pre-start must be undefined')
+    assertEquals(self.p(1), -1, 'first piece domain; 1*1 - 2')
+    assertEquals(self.p(2.5), 8, 'inserted linear function')
+    assertAlmostEquals(self.p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
 end
 
 TestClearBefore = {}
