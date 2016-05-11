@@ -60,6 +60,8 @@ TestInsertAndEvaluate.test_more_pieces = function(self)
     assertAlmostEquals(self.p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
 end
 
+
+
 TestGetStarts = {}
 TestGetStarts.setUp = function(self)
     self.p = piecewise.Polynomial()
@@ -75,6 +77,8 @@ TestGetStarts.test_with_pieces = function(self)
     self.p:insert(5,   -3,-2)
     assertEquals(self.p:getStarts(), {-4.3,0,5,8}, 'order by starting time')
 end
+
+
 
 TestClearBefore = {}
 TestClearBefore.setUp = function(self)
@@ -94,6 +98,8 @@ TestClearBefore.test_module_call = function(self)
     piecewise.clearBefore(self.p, 2.2)
     assertEquals(self.p:getStarts(), {2.2, 3}, 'clearBefore should trim')
 end
+
+
 
 TestAreEquals = {}
 TestAreEquals.test_equality = function(self)
@@ -121,6 +127,8 @@ TestAreEquals.test_equality = function(self)
     assert(p1 ~= p2)
 end
 
+
+
 TestInterlace = {}
 TestInterlace.test_interlace = function(self)
     local p1= piecewise.Polynomial()
@@ -139,6 +147,8 @@ TestInterlace.test_interlace = function(self)
     assertEquals(p1:interlace(p2), expected)
     assertEquals(p2:interlace(p1), expected)
 end
+
+
 
 TestOperations = {}
 TestOperations.test_subtract = function(self)
@@ -243,36 +253,41 @@ TestRoot.test_value_typecheck = function(self)
     end
 end
 
+
+
 TestDerive = {}
 TestDerive.setUp = function(self)
     self.p = piecewise.Polynomial()
 end
-TestDerive.test_empty = function(self)
+TestDerive.test_getDerivative_empty = function(self)
     assertEquals(self.p:getDerivative(), piecewise.Polynomial())
+    assertEquals(piecewise.getDerivative(self.p), piecewise.Polynomial())
 end
-TestDerive.test_pieces = function(self)
-    self.p:insert( 3, {5,  0, 0, 0.5, 2})
-    self.p:insert(20, {          3, -12})
-    self.p:insert(22, {             120})
-    self.p:insert(30, {      -4, 1,   1})
+TestDerive.test_getDerivative = function(self)
+    self.p:insert( 3, 5,  0, 0, 0.5, 2)
+    self.p:insert(20,           3, -12)
+    self.p:insert(22,              120)
+    self.p:insert(30,       -4, 1,   1)
     local e = piecewise.Polynomial()
-    e:insert( 3, {20, 0, 0, 0.5})
-    e:insert(20, {          3})
-    e:insert(22, {          0})
-    e:insert(30, {      -8, 1})
+    e:insert( 3, 20, 0, 0, 0.5)
+    e:insert(20,           3)
+    e:insert(22,           0)
+    e:insert(30,       -8, 1)
     assertEquals(self.p:getDerivative(), e)
+    assertEquals(piecewise.getDerivative(self.p), e, 'module call')
 end
 TestDerive.test_getGrowth_empty = function(self)
     assertNil(self.p:getGrowth(2.2))
+    assertNil(piecewise.getGrowth(self.p), 'module call')
 end
 TestDerive.test_getGrowth = function(self)
-    self.p:insert(2.5, {-1.2, 8, 3})
+    self.p:insert(2.5, -1.2, 8, 3)
     assertNil(self.p:getGrowth(2.2))
     assertAlmostEquals(self.p:getGrowth(6), -2.4*6 + 8, 1e-12)
+    assertAlmostEquals(piecewise.getGrowth(self.p, 6), -2.4*6 + 8, 1e-12)
 end
 
 
 
---print('==== TEST PIECEWISE POLYNOMIAL PASSED ====')
 luaunit:run()
 

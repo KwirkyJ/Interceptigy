@@ -155,8 +155,8 @@ local function derivePiece(coeffs, t)
 end
 
 ---Get the instantaneous derivative at time t
-local function getGrowth(self, t)
-    for _,piece in ipairs(self) do
+piecewise.getGrowth = function(P, t)
+    for _,piece in ipairs(P) do
         if piece[1] < t then 
             return derivePiece(piece[2], t)
         end
@@ -166,9 +166,9 @@ end
 
 ---Get polynomial derivative of the given function (for all pieces)
 -- derivative of constants is zero
-local function getDerivative(self)
+piecewise.getDerivative = function(P)
     local d = piecewise.Polynomial()
-    for _, piece in ipairs(self) do
+    for _, piece in ipairs(P) do
         d:insert(piece[1], derivePiece(piece[2]))
     end
     return d
@@ -260,8 +260,8 @@ piecewise.Polynomial = function()
     local pp = {insert        = piecewise.insert,
                 clearBefore   = piecewise.clearBefore,
                 evaluate      = piecewise.evaluate,
-                getDerivative = getDerivative,
-                getGrowth     = getGrowth,
+                getDerivative = piecewise.getDerivative,
+                getGrowth     = piecewise.getGrowth,
                 getStarts     = piecewise.getStarts,
                 interlace     = piecewise.interlace,
                 root          = root,
