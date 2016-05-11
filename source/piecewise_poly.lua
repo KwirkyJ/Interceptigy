@@ -219,18 +219,17 @@ end
 
 ---return the subtracted coefficients of the provided pieces
 local function subcoeffs(c1, c2)
-    local subs, nxt = {}, 1
-    local i1, i2 = 1, 1
-    while #c1-i1+1 < #c2-i2+1 do
-        subs[nxt] = -c2[i2]
+    local subs, nxt, i1, i2 = {}, 1, 1, 1
+    while #c1-i1 < #c2-i2 do
+        subs[nxt] = -c2[i2] -- if add, not negate
         i2, nxt = i2+1, nxt+1
     end
-    while #c1-i1+1 > #c2-i2+1 do
+    while #c1-i1 > #c2-i2 do
         subs[nxt] = c1[i1]
         i1, nxt = i1+1, nxt+1
     end
     while c1[i1] do
-        subs[nxt] = c1[i1] - c2[i2]
+        subs[nxt] = c1[i1] - c2[i2] -- if add, add
         i1, i2, nxt = i1+1, i2+1, nxt+1
     end
     return subs
@@ -246,7 +245,7 @@ piecewise.subtract = function(p1, p2)
         elseif p1[i1][1] >= t and not p2(t) then
             s:insert(t, p1[i1][2])
         else
-            s:insert(t, subcoeffs(p1[i1][2], p2[i2][2]))
+            s:insert(t, subcoeffs(p1[i1][2], p2[i2][2])) -- if add, addcoeffs
         end
         if not starts[i+1] then break end
         if p1[i1+1] and p1[i1+1][1] <= starts[i+1] then i1=i1+1 end
