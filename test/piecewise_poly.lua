@@ -151,21 +151,36 @@ end
 
 
 TestOperations = {}
+TestOperations.setUp = function(self)
+    self.p1 = piecewise.Polynomial()
+    self.p1:insert(0,     2, 0.5, 0)
+    self.p1:insert(4, -3, 0, 3,   2)
+    
+    self.p2 = piecewise.Polynomial()
+    self.p2:insert(1,     1, 0,  -4.2)
+    self.p2:insert(3, -2,-1, 0,   0.5)
+    self.p2:insert(4,             6)
+end
 TestOperations.test_subtract = function(self)
-    local p1= piecewise.Polynomial()
-    p1:insert(0, {    2, 0.5, 0})
-    p1:insert(4, {-3, 0, 3,   2})
-    local p2 = piecewise.Polynomial()
-    p2:insert(1, {    1, 0,  -4.2})
-    p2:insert(3, {-2,-1, 0,   0.5})
-    p2:insert(4, {            6})
     local expected = piecewise.Polynomial()
     expected:insert(0, {    2, 0.5, 0})
     expected:insert(1, {    1, 0.5, 4.2})
     expected:insert(3, { 2, 3, 0.5,-0.5})
     expected:insert(4, {-3, 0, 3,  -4})
-    assertEquals(piecewise.subtract(p1, p2), expected)
-    assertEquals(p1:subtract(p2), expected)
+    assertEquals(piecewise.subtract(self.p1, self.p2), expected)
+    assertEquals(self.p1:subtract(self.p2), expected)
+end
+--TODO: TestOperations.test_subtract_errors = function(self) end
+TestOperations.test_add = function(self)
+    local expected = piecewise.Polynomial()
+    expected:insert(0,     2, 0.5, 0)
+    expected:insert(1,     3, 0.5,-4.2)
+    expected:insert(3, -2, 1, 0.5, 0.5)
+    expected:insert(4, -3, 0, 3,  8)
+    assertEquals(piecewise.add(self.p1, self.p2), expected)
+    assertEquals(piecewise.add(self.p2, self.p1), expected, 'commutative')
+    assertEquals(self.p1:add(self.p2), expected)
+    assertEquals(self.p2:add(self.p1), expected, 'commutative non-module')
 end
 
 

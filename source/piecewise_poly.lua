@@ -217,35 +217,43 @@ piecewise.interlace = function(p1, p2)
     return t
 end
 
----return the subtracted coefficients of the provided pieces
-local function subcoeffs(c1, c2)
+local function addcoeffs(c1, c2, sub)
     local subs, nxt, i1, i2 = {}, 1, 1, 1
-    while #c1-i1 < #c2-i2 do
-        subs[nxt] = -c2[i2] -- if add, not negate
+    while #c1-i1 < #c2-i2 do -- unmatched higher-degree coeffs in f2
+        if sub then 
+             subs[nxt] =-c2[i2]
+        else subs[nxt] = c2[i2]
+        end
         i2, nxt = i2+1, nxt+1
     end
-    while #c1-i1 > #c2-i2 do
+    while #c1-i1 > #c2-i2 do -- unmatched higher-degree coeffs in f1
         subs[nxt] = c1[i1]
         i1, nxt = i1+1, nxt+1
     end
     while c1[i1] do
-        subs[nxt] = c1[i1] - c2[i2] -- if add, add
+        if sub then 
+             subs[nxt] = c1[i1] - c2[i2]
+        else subs[nxt] = c1[i1] + c2[i2]
+        end
         i1, i2, nxt = i1+1, i2+1, nxt+1
     end
     return subs
 end
 
----Get the function resulting from subtracting two functions from one another
-piecewise.subtract = function(p1, p2)
+local function arithmetic(p1, p2, sub)
     local s = piecewise.Polynomial()
     local starts, i1, i2 = piecewise.interlace(p1, p2), 1, 1
     for i,t in ipairs(starts) do
         if p1[i1][1] > t and not p1(t) then
-            s:insert(t, p2[i2][2])
+                local coeffs = p2[i2][2]
+            if sub then
+                for j=1, #coeffs do coeffs[j] = -coeffs[j] end
+            end
+            s:insert(t, coeffs)
         elseif p1[i1][1] >= t and not p2(t) then
             s:insert(t, p1[i1][2])
         else
-            s:insert(t, subcoeffs(p1[i1][2], p2[i2][2])) -- if add, addcoeffs
+            s:insert(t, addcoeffs(p1[i1][2], p2[i2][2], sub))
         end
         if not starts[i+1] then break end
         if p1[i1+1] and p1[i1+1][1] <= starts[i+1] then i1=i1+1 end
@@ -254,9 +262,35 @@ piecewise.subtract = function(p1, p2)
     return s
 end
 
+---Get the function resulting from adding two functions together
+piecewise.add = function(p1, p2)
+    return arithmetic(p1, p2)
+end
+
+---Get the function resulting from subtracting two functions from one another
+piecewise.subtract = function(p1, p2)
+    return arithmetic(p1, p2, true)
+end
+
+---NOT YET DEFINED
+piecewise.divide = function(p1, p2)
+    return
+end
+
+---Get the function resulting from multiplying two functions together
+piecewise.multiply = function(p1, p2)
+    return nil
+end
+
+---Alias for multipy(P, P)
+piecewise.square = function(P)
+    return piecewise.multiply(P, P)
+end
+
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
-    local pp = {insert        = piecewise.insert,
+    local pp = {add           = piecewise.add,
+                insert        = piecewise.insert,
                 clearBefore   = piecewise.clearBefore,
                 evaluate      = piecewise.evaluate,
                 getDerivative = piecewise.getDerivative,
