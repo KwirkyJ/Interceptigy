@@ -177,39 +177,39 @@ TestRoot.test_empty = function(self)
     assertEquals(self.p:root(7), {}, 'empty polynomial has no root')
 end
 TestRoot.test_constant = function(self)
-    self.p:insert(-1, {4})
+    self.p:insert(-1, 4)
     assertEquals(self.p:root(0), {}, 'no root at 0')
     assertEquals(self.p:root(4), {{-1, math.huge}},
                  'constant match has range of roots')
 end
 TestRoot.test_constant_piece = function(self)
-   self.p:insert(0, {4})
-   self.p:insert(5, {-3})
+   self.p:insert(0,  4)
+   self.p:insert(5, -3)
    assertEquals(self.p:root( 4), {{0, 5}})
    assertEquals(self.p:root(-3), {{5, math.huge}})
    assertEquals(self.p:root( 0), {})
 end
 TestRoot.test_linear = function(self)
-    self.p:insert(0, {-0.5, 4})
+    self.p:insert(0, -0.5, 4)
     assertEquals(self.p:root(), {8})
 end
 TestRoot.test_linear_under_domain = function(self)
-    self.p:insert(10, {-0.5, 4})
+    self.p:insert(10, -0.5, 4)
     assertEquals(self.p:root(), {})
 end
 TestRoot.test_linear_over_domain = function(self)
-    self.p:insert(0, {-0.5, 4})
-    self.p:insert(5, {3})
+    self.p:insert(0, -0.5, 4)
+    self.p:insert(5,  3)
     assertEquals(self.p:root(), {})
 end
 TestRoot.test_linear_pieces = function(self)
-    self.p:insert(-5, {1,   3}) -- root at -3
-    self.p:insert( 2, {2, -22}) -- root at 11
-    self.p:insert(13, {0.5,-5}) -- root at 10, below piece's domain
+    self.p:insert(-5, 1,   3) -- root at -3
+    self.p:insert( 2, 2, -22) -- root at 11
+    self.p:insert(13, 0.5,-5) -- root at 10, below piece's domain
     assertEquals(self.p:root(0), {-3, 11})
 end
 TestRoot.test_quadratic_noroot = function(self)
-    self.p:insert(-3, {1, 0, 1}) -- x^2 + 1
+    self.p:insert(-3, 1, 0, 1) -- x^2 + 1
     assertEquals(self.p:root(), {})
 end
 TestRoot.test_quadratic_oneroot = function(self)
@@ -217,23 +217,23 @@ TestRoot.test_quadratic_oneroot = function(self)
     assertEquals(self.p:root(), {0})
 end
 TestRoot.test_quadratic_tworoots = function(self)
-    self.p:insert(-3, {1, -3, 2})
+    self.p:insert(-3, 1, -3, 2)
     assertEquals(self.p:root(0), {1, 2})
     assertEquals(self.p:root(), self.p:root(0), 'default root of zero')
 end
 TestRoot.test_quadratic_tworoots_valueshift = function(self)
-    self.p:insert(-2, {-1, 0, 0})
+    self.p:insert(-2, -1, 0, 0)
     assertEquals(self.p:root(-2), {-2^0.5, 2^0.5})
 end
 TestRoot.test_quadratic_zero_x_squared = function(self)
-    self.p:insert(2, {0, 0.3, -3})
+    self.p:insert(2, 0, 0.3, -3)
     assertEquals(self.p:root(), {10})
 end
 TestRoot.test_multiple_pieces = function(self)
-    self.p:insert( 3, {2, -10})
-    self.p:insert(10, {3})
-    self.p:insert(12, {0, 0, 5})
-    self.p:insert(20, {-0.2, 0, 99})
+    self.p:insert( 3,       2,-10)
+    self.p:insert(10,           3)
+    self.p:insert(12,  0,   0,  5)
+    self.p:insert(20, -0.2, 0, 99)
     assertEquals(self.p:root(3),
                  {6.5, 
                   {10,12},
@@ -241,12 +241,12 @@ TestRoot.test_multiple_pieces = function(self)
                  })
 end
 TestRoot.test_cubic = function(self)
-    self.p:insert(2, {3, -3, 0.667, -7.5})
+    self.p:insert(2, 3, -3, 0.667, -7.5)
     assertError('cubic is not supported', nil,
                 self.p.root, self.p, 0)
 end
 TestRoot.test_value_typecheck = function(self)
-    self.p:insert(math.random(10), {1,1,1})
+    self.p:insert(math.random(10), 1,1,1)
     for _,v in ipairs({true, {}, function() return 3 end, 'string'}) do
         assertError('value must be number, was: '..type(v),
                     self.p.root, self.p, v)
