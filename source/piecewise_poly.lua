@@ -5,7 +5,7 @@ local moretables = require 'lib.moretables.init'
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
-piecewise.insert = function(self, t1, ...)
+piecewise.insert = function(P, t1, ...)
     local coeffs = {...}
     if type(coeffs[1]) == 'table' then coeffs = coeffs[1] end
     assert(type(t1) == 'number')
@@ -24,19 +24,19 @@ piecewise.insert = function(self, t1, ...)
         end
     end
     
-    if not self[1] then
-        self[1] = {t1, coeffs}
+    if not P[1] then
+        P[1] = {t1, coeffs}
     else
         local added = false
-        for i=1, #self do
-            if t1 < self[i][1] then
-                table.insert(self, i, {t1, coeffs})
+        for i=1, #P do
+            if t1 < P[i][1] then
+                table.insert(P, i, {t1, coeffs})
                 added = true
                 break
             end
         end
         if not added then
-            self[#self+1] = {t1, coeffs}
+            P[#P+1] = {t1, coeffs}
         end
     end
 end
@@ -48,7 +48,7 @@ piecewise.clearBefore = function(P, t)
             P[1][1] = t
             break
         else
-            table.remove(P, 1) -- cull piece
+            table.remove(P, 1)
         end
     end
 end
@@ -81,14 +81,14 @@ end
 
 ---Find the 'time(s)' at which the polynomial has the given value;
 -- supports only polynomials of degree two or less.
-local function root(self, v)
+piecewise.getRoots = function(P, v)
     v = v or 0
     assert(type(v) == 'number', 'value must be number, was: '..type(v))
-    if not self[1] then return {} end
+    if not P[1] then return {} end
     local roots, t_start, t_stop, t, coeffs = {}
-    for i=1, #self do
-        t_start, coeffs = self[i][1], self[i][2]
-        if self[i+1] then t_stop = self[i+1][1]
+    for i=1, #P do
+        t_start, coeffs = P[i][1], P[i][2]
+        if P[i+1] then t_stop = P[i+1][1]
         else t_stop = math.huge
         end
         --assert(type(t_start) == 'number')
@@ -263,7 +263,7 @@ piecewise.Polynomial = function()
                 getGrowth     = piecewise.getGrowth,
                 getStarts     = piecewise.getStarts,
                 interlace     = piecewise.interlace,
-                root          = root,
+                getRoots      = piecewise.getRoots,
                }
     local mt = {__call = piecewise.evaluate,
                 __eq   = piecewise.areEqual,
