@@ -25,6 +25,8 @@ TestInsertAndEvaluate.test_insert_errors = function(self)
                 self.p.insert, self.p, 3, 0.2, '5', -7)
     assertError('coefficients table cannot be empty', nil,
                 self.p.insert, self.p, 3, {})
+    assertError('coefficients table cannot be nil', nil,
+                self.p.insert, self.p, 3)
 end
 TestInsertAndEvaluate.test_one_piece = function(self)
     self.p:insert(0, {1, -2})
