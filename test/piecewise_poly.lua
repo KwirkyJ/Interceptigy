@@ -77,17 +77,22 @@ TestGetStarts.test_with_pieces = function(self)
 end
 
 TestClearBefore = {}
+TestClearBefore.setUp = function(self)
+    self.p = piecewise.Polynomial()
+    self.p:insert(0,          1,-2) -- for t>=0 return (1*t - 2)
+    self.p:insert(2,             8)
+    self.p:insert(3, -0.5, 3, 0, 2) -- -1/2*t^3 + 3*t^2 + 0*t + 2 
+end
 TestClearBefore.test_clearBefore = function(self)
-    local p = piecewise.Polynomial()
-    p:insert(0,          1,-2) -- for t>=0 return (1*t - 2)
-    p:insert(2,             8)
-    p:insert(3, -0.5, 3, 0, 2) -- -1/2*t^3 + 3*t^2 + 0*t + 2 
-    
-    p:clearBefore(2.2)
-    assertEquals(p:getStarts(), {2.2, 3}, 'clearBefore should trim')
-    assertEquals(p(2.99), 8)
-    assertEquals(p(3), -0.5*3^3 + 3*3^2 + 2)
-    assertNil(p(2.1999), 'new undefined region')
+    self.p:clearBefore(2.2)
+    assertEquals(self.p:getStarts(), {2.2, 3}, 'clearBefore should trim')
+    assertEquals(self.p(2.99), 8)
+    assertEquals(self.p(3), -0.5*3^3 + 3*3^2 + 2)
+    assertNil(self.p(2.1999), 'undefined region before clear time')
+end
+TestClearBefore.test_module_call = function(self)
+    piecewise.clearBefore(self.p, 2.2)
+    assertEquals(self.p:getStarts(), {2.2, 3}, 'clearBefore should trim')
 end
 
 TestAreEquals = {}

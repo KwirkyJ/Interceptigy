@@ -42,13 +42,13 @@ piecewise.insert = function(self, t1, ...)
 end
 
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
-local function clearBefore(self, t)
-    for _=1, #self do
-        if not self[2] or self[2][1] > t then
-            self[1][1] = t
+piecewise.clearBefore = function(P, t)
+    for _=1, #P do
+        if not P[2] or P[2][1] > t then
+            P[1][1] = t
             break
         else
-            table.remove(self, 1) -- cull piece
+            table.remove(P, 1) -- cull piece
         end
     end
 end
@@ -258,7 +258,7 @@ end
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {insert        = piecewise.insert,
-                clearBefore   = clearBefore,
+                clearBefore   = piecewise.clearBefore,
                 evaluate      = piecewise.evaluate,
                 getDerivative = getDerivative,
                 getGrowth     = getGrowth,
