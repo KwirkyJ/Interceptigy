@@ -5,7 +5,7 @@ local moretables = require 'lib.moretables.init'
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
-local function insert(self, t1, coeffs)
+piecewise.insert = function(self, t1, coeffs)
     assert(type(t1) == 'number')
     assert(type(coeffs) == 'table')
     assert(#coeffs > 0)
@@ -257,7 +257,7 @@ end
 
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
-    local pp = {insert        = insert,
+    local pp = {insert        = piecewise.insert,
                 clearBefore   = clearBefore,
                 evaluate      = evaluate,
                 getDerivative = getDerivative,

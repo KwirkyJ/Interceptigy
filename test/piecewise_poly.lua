@@ -6,14 +6,14 @@ local luaunit   = require 'luaunit.luaunit'
 
 
 TestInsertAndEvaluate = {}
-TestInsertAndEvaluate.test_empty = function(self)
+TestInsertAndEvaluate.test_evaluate_empty = function(self)
     local p
     for i=1, 100 do
         p = piecewise.Polynomial()
         assertNil(p:evaluate(i-50), 'empty polynomial should be nil')
     end
 end
-TestInsertAndEvaluate.test_addition_errors = function(self)
+TestInsertAndEvaluate.test_insert_errors = function(self)
     local p = piecewise.Polynomial()
     assertError('must have starting time', nil,
                 p.insert, p, nil, {5, 3})
@@ -34,6 +34,11 @@ TestInsertAndEvaluate.test_one_piece = function(self)
     assertEquals(p:evaluate(5),  3, 'f(5) -> 1*(5) + -2 ->  3')
     
     assertEquals(p(5), p:evaluate(5), 'metatable call as alias for evaluate')
+end
+TestInsertAndEvaluate.test_insert_module_alias = function(self)
+    local p = piecewise.Polynomial()
+    piecewise.insert(p, 0, {1, 2})
+    assertAlmostEquals(p(5), 5*1 + 2, 1e-12)
 end
 TestInsertAndEvaluate.test_more_pieces = function(self)
     local p = piecewise.Polynomial()
