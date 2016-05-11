@@ -3,18 +3,17 @@
 local piecewise = require 'source.piecewise_poly'
 local luaunit   = require 'luaunit.luaunit'
 
-local pp, tmp
 
-pp = piecewise.Polynomial()
-TestPolynomial = {}
-TestPolynomial.test_empty = function(self)
+
+TestInsertAndEvaluate = {}
+TestInsertAndEvaluate.test_empty = function(self)
     local p
     for i=1, 100 do
         p = piecewise.Polynomial()
-        assertNil(p(i-50), 'empty polynomial should be nil')
+        assertNil(p:evaluate(i-50), 'empty polynomial should be nil')
     end
 end
-TestPolynomial.test_addition_errors = function(self)
+TestInsertAndEvaluate.test_addition_errors = function(self)
     local p = piecewise.Polynomial()
     assertError('must have starting time', nil,
                 p.insert, p, nil, {5, 3})
@@ -25,7 +24,7 @@ TestPolynomial.test_addition_errors = function(self)
     assertError('coefficients cannot be empty', nil,
                 p.insert, p, 3, {})
 end
-TestPolynomial.test_one_piece = function(self)
+TestInsertAndEvaluate.test_one_piece = function(self)
     local p = piecewise.Polynomial()
     p:insert(0, {1, -2})
     
@@ -36,7 +35,7 @@ TestPolynomial.test_one_piece = function(self)
     
     assertEquals(p(5), p:evaluate(5), 'metatable call as alias for evaluate')
 end
-TestPolynomial.test_more_pieces = function(self)
+TestInsertAndEvaluate.test_more_pieces = function(self)
     local p = piecewise.Polynomial()
     p:insert(3, {-0.5, 3, 0, 2})
     p:insert(0, {1, -2}) -- added before extant
@@ -48,7 +47,9 @@ TestPolynomial.test_more_pieces = function(self)
     assertEquals(p(2.5), 8, 'inserted linear function')
     assertAlmostEquals(p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
 end
-TestPolynomial.test_clearBefore = function(self)
+
+TestClearBefore = {}
+TestClearBefore.test_clearBefore = function(self)
     local p = piecewise.Polynomial()
     p:insert(0, {1, -2}) -- for t>=0 return (1*t - 2)
     p:insert(2, {8})
@@ -60,7 +61,9 @@ TestPolynomial.test_clearBefore = function(self)
     assertEquals(p(3), -0.5*3^3 + 3*3^2 + 2)
     assertNil(p(2.1999), 'new undefined region')
 end
-TestPolynomial.test_equality = function(self)
+
+TestAreEquals = {}
+TestAreEquals.test_equality = function(self)
     local p1, p2 = piecewise.Polynomial(), piecewise.Polynomial()
     assertError(piecewise.areEqual, p1, nil)
     assert(p1 ~= nil)
@@ -82,7 +85,9 @@ TestPolynomial.test_equality = function(self)
     assert(p1 ~= p2)
     assert(not piecewise.areEqual(p1, p2))
 end
-TestPolynomial.test_interlace = function(self)
+
+TestInterlace = {}
+TestInterlace.test_interlace = function(self)
     local p1= piecewise.Polynomial()
     p1:insert(-1,{       1,   9})
     p1:insert( 0,{    2, 0.5, 0})
@@ -94,7 +99,7 @@ TestPolynomial.test_interlace = function(self)
     p2:insert( 4,{            6})
     assertEquals(piecewise.interlace(p1, p2), {-1, 0, 1, 3, 4, 9})
 end
-TestPolynomial.test_interlace_2 = function(self)
+TestInterlace.test_interlace_2 = function(self)
     local p1= piecewise.Polynomial()
     p1:insert(0, {    2, 0.5, 0})
     p1:insert(4, {-3, 0, 3,   2})
@@ -104,7 +109,9 @@ TestPolynomial.test_interlace_2 = function(self)
     p2:insert(4, {            6})
     assertEquals(piecewise.interlace(p1, p2), {0, 1, 3, 4})
 end
-TestPolynomial.test_subtract = function(self)
+
+TestOperations = {}
+TestOperations.test_subtract = function(self)
     local p1= piecewise.Polynomial()
     p1:insert(0, {    2, 0.5, 0})
     p1:insert(4, {-3, 0, 3,   2})
