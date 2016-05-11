@@ -63,13 +63,12 @@ local function getStarts(self)
 end
 
 ---Find value of the polynomial at a given 'time'.
-local function evaluate(self, t)
-    local pieces = self--[1]
-    if not pieces[1] or t < pieces[1][1] then return nil end
+piecewise.evaluate = function(P, t)
+    if not P[1] or t < P[1][1] then return nil end
     local v, coeffs = 0
-    for i=#pieces, 1, -1 do
-        if t >= pieces[i][1] then 
-            coeffs = pieces[i][2]
+    for i=#P, 1, -1 do
+        if t >= P[i][1] then 
+            coeffs = P[i][2]
             break
         end
     end
@@ -259,13 +258,13 @@ end
 piecewise.Polynomial = function()
     local pp = {insert        = piecewise.insert,
                 clearBefore   = clearBefore,
-                evaluate      = evaluate,
+                evaluate      = piecewise.evaluate,
                 getDerivative = getDerivative,
                 getGrowth     = getGrowth,
                 getStarts     = getStarts,
                 root          = root,
                }
-    local mt = {__call = evaluate,
+    local mt = {__call = piecewise.evaluate,
                 __eq   = piecewise.areEqual,
                }
     setmetatable(pp, mt)
