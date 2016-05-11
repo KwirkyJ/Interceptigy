@@ -19,9 +19,9 @@ TestInsertAndEvaluate.test_insert_errors = function(self)
                 p.insert, p, nil, {5, 3})
     assertError('start time must be number', nil,
                 p.insert, p, '3', {3})
-    assertError('coefficients must be table', nil,
-                p.insert, p, 3, '5')
-    assertError('coefficients cannot be empty', nil,
+    assertError('coefficients must be table or only-numbers', nil,
+                p.insert, p, 3, 0.2, '5', -7)
+    assertError('coefficients table cannot be empty', nil,
                 p.insert, p, 3, {})
 end
 TestInsertAndEvaluate.test_one_piece = function(self)
@@ -39,6 +39,11 @@ TestInsertAndEvaluate.test_insert_module_alias = function(self)
     local p = piecewise.Polynomial()
     piecewise.insert(p, 0, {1, 2})
     assertAlmostEquals(p(5), 5*1 + 2, 1e-12)
+end
+TestInsertAndEvaluate.test_vararg_coefficients = function(self)
+    local p = piecewise.Polynomial()
+    piecewise.insert(p, 0, -7, 2)
+    assertAlmostEquals(p(5), 5*(-7) + 2, 1e-12)
 end
 TestInsertAndEvaluate.test_more_pieces = function(self)
     local p = piecewise.Polynomial()

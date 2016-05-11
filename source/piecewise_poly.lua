@@ -5,14 +5,23 @@ local moretables = require 'lib.moretables.init'
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
-piecewise.insert = function(self, t1, coeffs)
+piecewise.insert = function(self, t1, ...)
+    local coeffs = {...}
+    if type(coeffs[1]) == 'table' then coeffs = coeffs[1] end
     assert(type(t1) == 'number')
     assert(type(coeffs) == 'table')
     assert(#coeffs > 0)
-    --local pieces = self[1]
     
-    while coeffs[1] == 0 do -- remove any leading zeroes
-        table.remove(coeffs, 1)
+    local n = 1
+    while n <= #coeffs do
+        -- verify that coefficients are numbers and trim leading zeroes (if any)
+        if type(coeffs[n]) ~= 'number' then 
+            error('coefficients must be numbers')
+        elseif n == 1 and coeffs[n] == 0 then 
+            table.remove(coeffs, 1)
+        else
+            n = n+1
+        end
     end
     
     if not self[1] then
@@ -124,15 +133,6 @@ local function root(self, v)
     return roots
 end
 
-local function getGrowth(self, t)
-    for _,piece in ipairs(self) do
-        if piece[i] < t then 
-            return nil
-        end
-    end
-    return nil
-end
-
 ---Get the derivative of a piece by its coefficients
 -- if no time t is provided, returns a table of new coefficients;
 -- else solves resulting polynomial at time t and returns number
@@ -219,21 +219,21 @@ end
 
 ---return the subtracted coefficients of the provided pieces
 local function subcoeffs(c1, c2)
-    local subcoeffs, nxt = {}, 1
+    local subs, nxt = {}, 1
     local i1, i2 = 1, 1
     while #c1-i1+1 < #c2-i2+1 do
-        subcoeffs[nxt] = -c2[i2]
+        subs[nxt] = -c2[i2]
         i2, nxt = i2+1, nxt+1
     end
     while #c1-i1+1 > #c2-i2+1 do
-        subcoeffs[nxt] = c1[i1]
+        subs[nxt] = c1[i1]
         i1, nxt = i1+1, nxt+1
     end
     while c1[i1] do
-        subcoeffs[nxt] = c1[i1] - c2[i2]
+        subs[nxt] = c1[i1] - c2[i2]
         i1, i2, nxt = i1+1, i2+1, nxt+1
     end
-    return subcoeffs
+    return subs
 end
 
 ---Get the function resulting from subtracting two functions from one another
