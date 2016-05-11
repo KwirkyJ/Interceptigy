@@ -5,7 +5,7 @@ local moretables = require 'lib.moretables.init'
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
-local function addPiece(self, t1, coeffs)
+local function insert(self, t1, coeffs)
     assert(type(t1) == 'number')
     assert(type(coeffs) == 'table')
     assert(#coeffs > 0)
@@ -169,7 +169,7 @@ end
 local function getDerivative(self)
     local d = piecewise.Polynomial()
     for _, piece in ipairs(self) do
-        d:add(piece[1], derivePiece(piece[2]))
+        d:insert(piece[1], derivePiece(piece[2]))
     end
     return d
 end
@@ -242,11 +242,11 @@ piecewise.subtract = function(p1, p2)
     local starts, i1, i2 = piecewise.interlace(p1, p2), 1, 1
     for i,t in ipairs(starts) do
         if p1[i1][1] > t and not p1(t) then
-            s:add(t, p2[i2][2])
+            s:insert(t, p2[i2][2])
         elseif p1[i1][1] >= t and not p2(t) then
-            s:add(t, p1[i1][2])
+            s:insert(t, p1[i1][2])
         else
-            s:add(t, subcoeffs(p1[i1][2], p2[i2][2]))
+            s:insert(t, subcoeffs(p1[i1][2], p2[i2][2]))
         end
         if not starts[i+1] then break end
         if p1[i1+1] and p1[i1+1][1] <= starts[i+1] then i1=i1+1 end
@@ -257,7 +257,7 @@ end
 
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
-    local pp = {add           = addPiece,
+    local pp = {insert        = insert,
                 clearBefore   = clearBefore,
                 evaluate      = evaluate,
                 getDerivative = getDerivative,
