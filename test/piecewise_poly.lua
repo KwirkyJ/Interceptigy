@@ -30,9 +30,6 @@ TestInsertAndEvaluate.test_insert_errors = function(self)
 end
 TestInsertAndEvaluate.test_one_piece = function(self)
     self.p:insert(0, {1, -2})
-    
-    assertEquals(self.p:getStarts(), {0}, 
-                 'confirm one piece which starts at zero')
     assertNil(self.p:evaluate(-1), 'pre-start should be undefined')
     assertEquals(self.p:evaluate(0), -2, 'f(0) -> 1*(0) + -2 -> -2')
     assertEquals(self.p:evaluate(5),  3, 'f(5) -> 1*(5) + -2 ->  3')
