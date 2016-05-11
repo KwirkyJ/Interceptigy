@@ -263,6 +263,7 @@ piecewise.Polynomial = function()
                 getDerivative = getDerivative,
                 getGrowth     = getGrowth,
                 getStarts     = piecewise.getStarts,
+                interlace     = piecewise.interlace,
                 root          = root,
                }
     local mt = {__call = piecewise.evaluate,

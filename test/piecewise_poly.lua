@@ -118,25 +118,20 @@ end
 TestInterlace = {}
 TestInterlace.test_interlace = function(self)
     local p1= piecewise.Polynomial()
-    p1:insert(-1,{       1,   9})
-    p1:insert( 0,{    2, 0.5, 0})
-    p1:insert( 4,{-3, 0, 3,   2})
-    p1:insert( 9,{ 1, 1, 1,   1})
+    p1:insert(-1,        1,   9)
+    p1:insert( 0,     2, 0.5, 0)
+    p1:insert( 4, -3, 0, 3,   2)
+    p1:insert( 9,  1, 1, 1,   1)
     local p2 = piecewise.Polynomial()
-    p2:insert( 1,{    1, 0,  -4.2})
-    p2:insert( 3,{-2,-1, 0,   0.5})
-    p2:insert( 4,{            6})
-    assertEquals(piecewise.interlace(p1, p2), {-1, 0, 1, 3, 4, 9})
-end
-TestInterlace.test_interlace_2 = function(self)
-    local p1= piecewise.Polynomial()
-    p1:insert(0, {    2, 0.5, 0})
-    p1:insert(4, {-3, 0, 3,   2})
-    local p2 = piecewise.Polynomial()
-    p2:insert(1, {    1, 0,  -4.2})
-    p2:insert(3, {-2,-1, 0,   0.5})
-    p2:insert(4, {            6})
-    assertEquals(piecewise.interlace(p1, p2), {0, 1, 3, 4})
+    p2:insert( 1,     1, 0,  -4.2)
+    p2:insert( 3, -2,-1, 0,   0.5)
+    p2:insert( 4,             6)
+    local expected = {-1, 0, 1, 3, 4, 9}
+    assertEquals(piecewise.interlace(p1, p2), expected)
+    assertEquals(piecewise.interlace(p2, p1), expected,
+                 'order of arguments is unimportant')
+    assertEquals(p1:interlace(p2), expected)
+    assertEquals(p2:interlace(p1), expected)
 end
 
 TestOperations = {}
