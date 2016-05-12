@@ -145,12 +145,23 @@ TestInterlace.test_interlace = function(self)
     p2:insert( 1,     1, 0,  -4.2)
     p2:insert( 3, -2,-1, 0,   0.5)
     p2:insert( 4,             6)
-    local expected = {-1, 0, 1, 3, 4, 9}
-    assertEquals(piecewise.interlace(p1, p2), expected)
-    assertEquals(piecewise.interlace(p2, p1), expected,
-                 'order of arguments is unimportant')
-    assertEquals(p1:interlace(p2), expected)
-    assertEquals(p2:interlace(p1), expected)
+    local e12 = {{-1, 1, nil}, 
+                 { 0, 2, nil}, 
+                 { 1, 2, 1}, 
+                 { 3, 2, 2}, 
+                 { 4, 3, 3}, 
+                 { 9, 4, 3}}
+    local e21 = {{-1, nil, 1}, 
+                 { 0, nil, 2}, 
+                 { 1,   1, 2}, 
+                 { 3,   2, 2}, 
+                 { 4,   3, 3}, 
+                 { 9,   3, 4}}
+    assertEquals(piecewise.interlace(p1, p2), e12)
+    assertEquals(piecewise.interlace(p2, p1), e21,
+                 'order of arguments is important')
+    assertEquals(p1:interlace(p2), e12)
+    assertEquals(p2:interlace(p1), e21)
 end
 
 

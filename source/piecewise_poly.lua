@@ -185,34 +185,41 @@ piecewise.areEqual = function(p1, p2)
     return true
 end
 
----return a table interlacing the start times of the two pieces
+---Return a table interlacing the start times of the two 'functions' 
+-- with piece indices for each interval 
 piecewise.interlace = function(p1, p2)
     local t = {}
-    local i1, i2, end1, end2 = 1, 1, false, false
+    local i1, i2 = 1, 1
+    local done1, done2 = false, false
+    --TODO: if either has zero pieces
     while true do
-        local piece1, piece2 = p1[i1], p2[i2]
-        if end1 and end2 then break
-        elseif not piece1 then 
-            if not piece2 then break end
-            i1, end1 = #p1, true
-            t[#t+1] = piece2[1]
-            i2 = i2+1
-        elseif not piece2 then
-            i2, end2 = #p2, true
-            t[#t+1] = piece1[1]
-            i1 = i1+1
-        elseif piece1[1] < piece2[1] then
-            t[#t+1] = piece1[1]
-            i1 = i1+1
-        elseif piece1[1] == piece2[1] then
-            t[#t+1] = piece1[1]
-            i1, i2 = i1+1, i2+1
-        else -- piece1[1] > piece2[1]
-            t[#t+1] = piece2[1]
-            i2 = i2+1
+        local s1, s2 = p1[i1][1], p2[i2][1]
+        local start = math.min(s1, s2)
+        if start < p1[1][1] then -- before first piece in p1
+            t[#t+1] = {p2[i2][1], nil, i2}
+        elseif start < p2[1][1] then -- before first piece in p2
+            t[#t+1] = {p1[i1][1], i1, nil}
+        elseif done1 then
+            start = s2
+            t[#t+1] = {start, i1, i2}
+        elseif done2 then
+            start = s1
+            t[#t+1] = {start, i1, i2}
+        else
+            if s1 > start then
+                t[#t+1] = {start, i1-1, i2}
+            elseif s2 > start then
+                t[#t+1] = {start, i1, i2-1}
+            else
+                t[#t+1] = {start, i1, i2}
+            end
         end
-        end1 = end1 or i1 > #p1
-        end2 = end2 or i2 > #p2
+        if s1 == start then i1 = i1+1 end
+        if s2 == start then i2 = i2+1 end
+        
+        if i1 > #p1 then done1, i1 = true, #p1 end
+        if i2 > #p2 then done2, i2 = true, #p2 end
+        if done1 and done2 then break end
     end
     return t
 end
@@ -242,22 +249,20 @@ end
 
 local function arithmetic(p1, p2, sub)
     local s = piecewise.Polynomial()
-    local starts, i1, i2 = piecewise.interlace(p1, p2), 1, 1
-    for i,t in ipairs(starts) do
-        if p1[i1][1] > t and not p1(t) then
-                local coeffs = p2[i2][2]
-            if sub then
-                for j=1, #coeffs do coeffs[j] = -coeffs[j] end
+    local starts = p1:interlace(p2)
+    for _, batch in ipairs(starts) do
+        local t, i1, i2 = batch[1], batch[2], batch[3]
+        if not i1 then
+            local coeffs = p2[i2][2]
+            if sub then 
+                for i=1, #coeffs do coeffs[i] = -coeffs[i] end
             end
             s:insert(t, coeffs)
-        elseif p1[i1][1] >= t and not p2(t) then
+        elseif not i2 then
             s:insert(t, p1[i1][2])
         else
             s:insert(t, addcoeffs(p1[i1][2], p2[i2][2], sub))
         end
-        if not starts[i+1] then break end
-        if p1[i1+1] and p1[i1+1][1] <= starts[i+1] then i1=i1+1 end
-        if p2[i2+1] and p2[i2+1][1] <= starts[i+1] then i2=i2+1 end
     end
     return s
 end
