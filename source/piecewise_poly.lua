@@ -8,9 +8,9 @@ local piecewise = {}
 piecewise.insert = function(P, t1, ...)
     local coeffs = {...}
     if type(coeffs[1]) == 'table' then coeffs = coeffs[1] end
-    assert(type(t1) == 'number')
-    assert(type(coeffs) == 'table')
-    assert(#coeffs > 0)
+    assert(type(t1) == 'number', 'piece start time must be number')
+    assert(type(coeffs) == 'table', 'coefficients must be table')
+    assert(#coeffs > 0, 'coefficients cannot be empty')
     
     local n = 1
     while n <= #coeffs do
@@ -248,8 +248,7 @@ local function addcoeffs(c1, c2, sub)
 end
 
 local function arithmetic(p1, p2, sub)
-    local s = piecewise.Polynomial()
-    local starts = p1:interlace(p2)
+    local s, starts = piecewise.Polynomial(), p1:interlace(p2)
     for _, batch in ipairs(starts) do
         local t, i1, i2 = batch[1], batch[2], batch[3]
         if not i1 then
@@ -282,9 +281,39 @@ piecewise.divide = function(p1, p2)
     error('polynomial division not yet supported')
 end
 
+local function mult(coeffs1, coeffs2)
+    local product = {}
+    local maxdegree = #coeffs1-1 + #coeffs2-1
+    for i=1, #coeffs1 do
+        for j=1, #coeffs2 do
+            local degree = i+j - 1
+            local p = coeffs1[i] * coeffs2[j]
+            if product[degree] then 
+                product[degree] = product[degree] + p
+            else
+                product[degree] = p
+            end
+        end
+    end
+    for i=1, maxdegree do
+        product[i] = product[i] or 0
+    end
+    return product
+end
+
 ---Get the function resulting from multiplying two functions together
 piecewise.multiply = function(p1, p2)
-    local product = piecewise.Polynomial()
+    local product, starts = piecewise.Polynomial(), p1:interlace(p2)
+    for i=1, #starts do
+        local t, i1, i2 = starts[i][1], starts[i][2], starts[i][3]
+        if not i1 then
+            product:insert(t, p2[i2][2])
+        elseif not i2 then
+            product:insert(t, p1[i1][2])
+        else
+            product:insert(t, mult(p1[i1][2], p2[i2][2]))
+        end
+    end
     return product
 end
 
@@ -296,17 +325,18 @@ end
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {add           = piecewise.add,
-                divide        = piecewise.divide,
-                insert        = piecewise.insert,
                 clearBefore   = piecewise.clearBefore,
+                divide        = piecewise.divide,
                 evaluate      = piecewise.evaluate,
                 getDerivative = piecewise.getDerivative,
                 getGrowth     = piecewise.getGrowth,
                 getRoots      = piecewise.getRoots,
                 getStarts     = piecewise.getStarts,
+                insert        = piecewise.insert,
                 interlace     = piecewise.interlace,
                 multiply      = piecewise.multiply,
                 subtract      = piecewise.subtract,
+                square        = piecewise.square,
                }
     local mt = {__call = piecewise.evaluate,
                 __eq   = piecewise.areEqual,
