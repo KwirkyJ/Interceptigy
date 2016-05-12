@@ -5,6 +5,11 @@ local luaunit   = require 'luaunit.luaunit'
 
 
 
+--TODO: construct and populate a polynomial with one call
+-- e.g.? p = piecewise.Polynomial{0, 3,2,5,-2}, {3, 5, 2.4}) ?
+--TODO? polynomials accept more than one variable
+-- e.g.? f(x,y) = 4x^2 - 0.2x^2y + +1xy + 4xy^2 + 1/2y + 2001
+
 TestInsertAndEvaluate = {}
 TestInsertAndEvaluate.setUp = function(self)
     self.p = piecewise.Polynomial()
@@ -181,6 +186,32 @@ TestOperations.test_add = function(self)
     assertEquals(piecewise.add(self.p2, self.p1), expected, 'commutative')
     assertEquals(self.p1:add(self.p2), expected)
     assertEquals(self.p2:add(self.p1), expected, 'commutative non-module')
+end
+TestOperations.test_multiply = function(self)
+    local expected = piecewise.Polynomial()
+    expected:insert(0,              2,   0.5,  0)--(2x^2+0.5x)(???)
+    expected:insert(1,      2, 0.5,-8.2,-2.1,  0)--(2x^2+0.5x)(x^2-4.2)
+    expected:insert(3,  -4,-3,-0.5, 1,   0.25, 0)--(2x^2+0.5x)(-2x^3-1x^2+0.5)
+    expected:insert(4,       -18,   0,  18,   12)--(3x+2-3x^3)(6)
+    assertEquals(piecewise.multiply(self,p1, self.p2), expected)
+    assertEquals(piecewise.multiply(self.p2, self.p1), expected, 'commutative')
+    assertEquals(self.p1:multiply(self.p2), expected)
+    assertEquals(self.p2:multiply(self.p1), expected, 'commutative non-module')
+end
+TestOperations.test_square = function(self)
+    expected = piecewise.Polynomial()
+    expected:insert(0, 4, 2, 0.25, 0, 0)
+    -- 4x^2 + 1x^3 + 1x^3 + 0.25x^2
+    expected:insert(4, 9, 0, -18, -12, 9, 12, 4)
+    --9x^6 + -9x^4 + -6x^3 + -9x^4 + 9x^2 + 6x + -6x^3 + 6x + 4
+    assertEquals(piecewise.square(self.p1), expected)
+    assertEquals(self.py:square(), expected)
+end
+TestOperations.test_divide = function(self)
+    assertError('division is not (yet) supported', nil, 
+                piecewise.divide, self.p1, self.p2)
+    assertError('division is not (yet) supported', nil, 
+                self.p1.divide, self.p1, self.p2)
 end
 
 

@@ -274,12 +274,13 @@ end
 
 ---NOT YET DEFINED
 piecewise.divide = function(p1, p2)
-    return
+    error('polynomial division not yet supported')
 end
 
 ---Get the function resulting from multiplying two functions together
 piecewise.multiply = function(p1, p2)
-    return nil
+    local product = piecewise.Polynomial()
+    return product
 end
 
 ---Alias for multipy(P, P)
@@ -290,6 +291,7 @@ end
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function()
     local pp = {add           = piecewise.add,
+                divide        = piecewise.divide,
                 insert        = piecewise.insert,
                 clearBefore   = piecewise.clearBefore,
                 evaluate      = piecewise.evaluate,
@@ -298,6 +300,7 @@ piecewise.Polynomial = function()
                 getRoots      = piecewise.getRoots,
                 getStarts     = piecewise.getStarts,
                 interlace     = piecewise.interlace,
+                multiply      = piecewise.multiply,
                 subtract      = piecewise.subtract,
                }
     local mt = {__call = piecewise.evaluate,
