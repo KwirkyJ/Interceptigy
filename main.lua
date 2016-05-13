@@ -16,7 +16,14 @@ local es
 local winx, winy
 local starttime, time_elapsed
 local camera
+
 local version = {love.getVersion()}
+local lmb, rmb = 1, 2
+if version[2] == 9 then lmb, rmb = 'l', 'r' end
+local element_being_manipulated -- {element, t}
+local element_closest -- {element, t, distance}
+local element_idstore = 0
+local movingCamera = "none" -- "drag", "zoom"
 
 local function element_get_position(self, t)
     assert(type(t) == 'number')
@@ -31,19 +38,40 @@ local function new_element(colortable)
     --if random() > 0.5 then vy = -vy end
     if startx > winx/2 then vx = -vx end
     if starty > winy/2 then vy = -vy end
-    fx, fy = piecewise.Polynomial(), piecewise.Polynomial()
-    fx:add(time_elapsed, {vx, startx - vx*time_elapsed})
-    fy:add(time_elapsed, {vy, starty - vy*time_elapsed})
+    fx = piecewise.Polynomial({time_elapsed, vx, startx - vx*time_elapsed})
+    fy = piecewise.Polynomial({time_elapsed, vy, starty - vy*time_elapsed})
+    element_idstore = element_idstore + 1
     return {[1] = fx,
             [2] = fy,
             [3] = colortable or {random(0xff), random(0xff), random(0xff)},
+            ['id'] = element_idstore,
             ['getPosition'] = element_get_position,
            }
 end
 
+local function find_closest_path(fx, fy)
+    element_closest = {}
+    local dx, dy, t, fd, d
+    for i, e in ipairs(es) do
+        dx, dy = fx:subtract(e[1]), fy:subtract(e[2])--TODO: e:getPositionFunctions()
+        fd = piecewise.add(dx:square(), dy:square()):getDerivative()
+        t = time_elapsed
+        for _, r in ipairs(fd:getRoots(0)) do
+            if r > t then t = r; break end
+        end
+        d = dx(t)^2 + dy(t)^2--fd(t)
+        if not element_closest[1] 
+        or d < element_closest[3]
+        then element_closest = {e, t, d}
+        end
+    end
+    element_closest[3] = element_closest[3] ^ 0.5
+    --local x, y = element_closest[1]:getPosition(t)
+    --print('closest point is at ('..x..','..y..')', 
+    --      'NOW is '..time_elapsed..', CLOSEST at '..t)
+end
+
 function love.load()
-    --local j, n, r, c = love.getVersion()
-    --version = {major = j, minor = n, revision = r, codename = c}
     starttime = getTime()
     time_elapsed = 0
     winx, winy = lg.getDimensions()
@@ -65,18 +93,36 @@ function love.keypressed(key)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    local rmb, lmb = 2, 1
-    if version[2] == 9 then
-        rmb, lmb = 'r', 'l'
+    if movingCamera == 'drag' then
+        --local x, y = camera:getPosition()
+        local scale = camera:getScale()
+        camera:setPosition(-dx / scale, -dy / scale, true)
+    elseif movingCamera == 'zoom' then
+        local zl = camera:getZoom()
+        camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT, 'center')
+    else -- no camera manip
+        local wx, wy = camera:getWorldPoint(x, y)
+        find_closest_path(piecewise.Polynomial({time_elapsed, wx}),
+                          piecewise.Polynomial({time_elapsed, wy}))
     end
-    if lm.isDown(rmb) then
-        if lm.isDown(lmb) or lm.isDown(1) then
-            local zl = camera:getZoom()
-            camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT, 'center')
-        else
-            local x, y = camera:getPosition()
-            local scale = camera:getScale()
-            camera:setPosition(-dx / scale, -dy / scale, true)
+end
+
+function love.mousepressed(x, y, button)
+    if button == rmb then
+        movingCamera = 'drag'
+    elseif button == lmb then
+        if movingCamera == 'drag' then
+            movingCamera = 'zoom'
+        end
+    end
+end
+
+function love.mousereleased(x, y, button)
+    if button == rmb then
+        movingCamera = 'none'
+    elseif button == lmb then
+        if movingCamera == 'zoom' then
+            movingCamera = 'drag'
         end
     end
 end
@@ -98,13 +144,23 @@ function love.update(dt)
         local ex, ey = es[i]:getPosition(time_elapsed)
         if 0 > ex or ex > winx or 0 > ey or ey > winy then
             es[i] = new_element()
+        --end
+        else es[i][1]:clearBefore(time_elapsed)
+             es[i][2]:clearBefore(time_elapsed)
         end
     end
 end
 
 function love.draw()
     lg.setBackgroundColor(0, 0, 0)
+    lg.setColor(0xff, 0, 0)
     local x, y, dx, dy
+    x,y = camera:getScreenPoint(10, 10)
+    dx, dy = (winx-20)*camera:getScale(), (winy-20)*camera:getScale()
+    lg.rectangle('line', x, y, dx, dy)
+    x,y = camera:getScreenPoint(0, 0)
+    dx, dy = winx*camera:getScale(), winy*camera:getScale()
+    lg.rectangle('line', x, y, dx, dy)
     for _,e in ipairs(es) do
         --x, y = e:getPosition(time_elapsed)
         --dx, dy = e:getPosition(time_elapsed+1000)
@@ -129,5 +185,17 @@ function love.draw()
             t, count = t+1, count+1
         end
     end
+
+    --draw path highlight of point closest to cursor
+    if not element_closest then return end
+    lg.setColor(0xff, 0xff, 0xff)
+    local special_e, special_t = element_closest[1], element_closest[2]
+    x, y = special_e:getPosition(special_t)
+    if x and y then
+        x, y = camera:getScreenPoint(x, y)
+        lg.circle('fill', x, y, 3, 8)
+    end
+    --x, y = lm.getPosition()
+    --lg.circle('fill', x, y, 3, 8)
 end
 
