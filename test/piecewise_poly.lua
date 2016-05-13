@@ -5,12 +5,27 @@ local luaunit   = require 'luaunit.luaunit'
 
 
 
---TODO: construct and populate a polynomial with one call
--- e.g.? p = piecewise.Polynomial{0, 3,2,5,-2}, {3, 5, 2.4}) ?
 --TODO? polynomials accept more than one variable
 -- e.g.? f(x,y) = 4x^2 - 0.2x^2y + +1xy + 4xy^2 + 1/2y + 2001
 
 
+
+TestPrepopulate = {}
+TestPrepopulate.test_one_piece = function(self)
+    local p = piecewise.Polynomial({4, 3, 2})
+    assertNil(p(3.3), 'before first piece')
+    assertEquals(p(9), 3*9 + 2)
+end
+TestPrepopulate.test_more_pieces = function(self)
+    local p = piecewise.Polynomial({3, 2}, {-2, 5, 3, 2}, {6, 3})
+    assertEquals(p:getStarts(), {-2, 3, 6})
+end
+TestPrepopulate.test_errors = function(self)
+    assertError('supplied arguments must be tables',
+                piecewise.Polynomial, 5, 1, 3)
+    assertError('table must have at least two numbers (at 3)',
+                piecewise.Polynomial, {0,1,2}, {4,2,1}, {5}, {5,3})
+end
 
 TestInsertAndEvaluate = {}
 TestInsertAndEvaluate.setUp = function(self)

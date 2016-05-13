@@ -336,7 +336,7 @@ piecewise.square = function(P)
 end
 
 ---Create a new piecewise polynomial 'object'.
-piecewise.Polynomial = function()
+piecewise.Polynomial = function(...)
     local pp = {add           = piecewise.add,
                 clearBefore   = piecewise.clearBefore,
                 divide        = piecewise.divide,
@@ -355,6 +355,12 @@ piecewise.Polynomial = function()
                 __eq   = piecewise.areEqual,
                }
     setmetatable(pp, mt)
+    for i,t in ipairs({...}) do
+        assert(type(t) == 'table', 'supplied arguments must be tables')
+        assert(#t > 1, 'table must have at least two numbers (at '..i..')')
+        local start = table.remove(t, 1)
+        pp:insert(start, t)
+    end
     return pp
 end
 
