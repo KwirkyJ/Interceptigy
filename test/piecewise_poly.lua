@@ -137,16 +137,19 @@ end
 
 
 TestInterlace = {}
+TestInterlace.setUp = function(self)
+    self.p1= piecewise.Polynomial()
+    self.p1:insert(-1,        1,   9)
+    self.p1:insert( 0,     2, 0.5, 0)
+    self.p1:insert( 4, -3, 0, 3,   2)
+    self.p1:insert( 9,  1, 1, 1,   1)
+    
+    self.p2 = piecewise.Polynomial()
+    self.p2:insert( 1,     1, 0,  -4.2)
+    self.p2:insert( 3, -2,-1, 0,   0.5)
+    self.p2:insert( 4,             6)
+end
 TestInterlace.test_interlace = function(self)
-    local p1= piecewise.Polynomial()
-    p1:insert(-1,        1,   9)
-    p1:insert( 0,     2, 0.5, 0)
-    p1:insert( 4, -3, 0, 3,   2)
-    p1:insert( 9,  1, 1, 1,   1)
-    local p2 = piecewise.Polynomial()
-    p2:insert( 1,     1, 0,  -4.2)
-    p2:insert( 3, -2,-1, 0,   0.5)
-    p2:insert( 4,             6)
     local e12 = {{-1, 1, nil}, 
                  { 0, 2, nil}, 
                  { 1, 2, 1}, 
@@ -159,11 +162,20 @@ TestInterlace.test_interlace = function(self)
                  { 3,   2, 2}, 
                  { 4,   3, 3}, 
                  { 9,   3, 4}}
-    assertEquals(piecewise.interlace(p1, p2), e12)
-    assertEquals(piecewise.interlace(p2, p1), e21,
+    assertEquals(piecewise.interlace(self.p1, self.p2), e12)
+    assertEquals(piecewise.interlace(self.p2, self.p1), e21,
                  'order of arguments is important')
-    assertEquals(p1:interlace(p2), e12)
-    assertEquals(p2:interlace(p1), e21)
+    assertEquals(self.p1:interlace(self.p2), e12)
+    assertEquals(self.p2:interlace(self.p1), e21)
+end
+TestInterlace.test_empty = function(self)
+    local p_empty = piecewise.Polynomial()
+    local e1 = {{1, 1, nil}, {3, 2, nil}, {4, 3, nil}}
+    local e2 = {{-1, nil, 1}, {0, nil, 2}, {4, nil, 3}, {9, nil, 4}}
+    assertEquals(self.p2:interlace(p_empty), e1)
+    assertEquals(p_empty:interlace(self.p1), e2)
+    assertEquals(p_empty:interlace(piecewise.Polynomial()), {},
+                 'interlacing two empty polynomials gives an empty table')
 end
 
 

@@ -190,9 +190,22 @@ end
 piecewise.interlace = function(p1, p2)
     local t = {}
     local i1, i2 = 1, 1
-    local done1, done2 = false, false
-    --TODO: if either has zero pieces
-    while true do
+    local done1, done2 = i1 > #p1, i2 > #p2
+    
+    if done1 and not done2 then
+        for i=1, #p2 do
+            t[#t+1] = {p2[i][1], nil, i}
+        end
+        done2 = true
+    elseif done2 and not done1 then
+        for i=1, #p1 do
+            t[#t+1] = {p1[i][1], i}
+        end
+        done1 = true
+    end
+    if done1 and done2 then return t end
+    
+    while not done1 or not done2 do
         local s1, s2 = p1[i1][1], p2[i2][1]
         local start = math.min(s1, s2)
         if start < p1[1][1] then -- before first piece in p1
