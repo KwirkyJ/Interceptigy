@@ -5,6 +5,7 @@ local piecewise = require 'source.piecewise_poly'
 local viewport  = require 'source.viewport'
 
 local MOUSEDRAG_ZOOM_CONSTANT = 50
+local WHEEL_ZOOM_CONSTANT = 10
 
 local lg      = love.graphics
 local lk      = love.keyboard
@@ -66,9 +67,6 @@ local function find_closest_path(fx, fy)
         end
     end
     element_closest[3] = element_closest[3] ^ 0.5
-    --local x, y = element_closest[1]:getPosition(t)
-    --print('closest point is at ('..x..','..y..')', 
-    --      'NOW is '..time_elapsed..', CLOSEST at '..t)
 end
 
 function love.load()
@@ -94,7 +92,6 @@ end
 
 function love.mousemoved(x, y, dx, dy)
     if movingCamera == 'drag' then
-        --local x, y = camera:getPosition()
         local scale = camera:getScale()
         camera:setPosition(-dx / scale, -dy / scale, true)
     elseif movingCamera == 'zoom' then
@@ -128,14 +125,14 @@ function love.mousereleased(x, y, button)
 end
 
 if version[2] > 9 then
-    function love.wheelmoved(x, y)
-        if x > 0 then print('wheel x > 0')
-        elseif x < 0 then print('wheel x < 0')
-        end
-        if y > 0 then print('wheel y > 0')
-        elseif y < 0 then print('wheel y < 0')
-        end
-    end
+  function love.wheelmoved(x, y)
+      --if x > 0 then print('wheel x > 0')
+      --elseif x < 0 then print('wheel x < 0')
+      --end
+      if y ~= 0 then
+          camera:setZoom(camera:getZoom() + y / WHEEL_ZOOM_CONSTANT, 'center')
+      end
+  end
 end
 
 function love.update(dt)
@@ -144,7 +141,6 @@ function love.update(dt)
         local ex, ey = es[i]:getPosition(time_elapsed)
         if 0 > ex or ex > winx or 0 > ey or ey > winy then
             es[i] = new_element()
-        --end
         else es[i][1]:clearBefore(time_elapsed)
              es[i][2]:clearBefore(time_elapsed)
         end
@@ -162,19 +158,16 @@ function love.draw()
     dx, dy = winx*camera:getScale(), winy*camera:getScale()
     lg.rectangle('line', x, y, dx, dy)
     for _,e in ipairs(es) do
-        --x, y = e:getPosition(time_elapsed)
-        --dx, dy = e:getPosition(time_elapsed+1000)
          x,  y = camera:getScreenPoint(e:getPosition(time_elapsed))
         dx, dy = camera:getScreenPoint(e:getPosition(time_elapsed+1000))
         lg.setColor(e[3])
         lg.line(x, y, dx, dy)
         lg.circle('fill', x, y, 6, 8)
+        
+        -- draw 'reference points' along track at equal time intervals
         -- TODO: scale predicted nodes interval about 'camera zoom'
-        local firstreftime = math.ceil(time_elapsed) 
-        local t, count = firstreftime, 0
-        --firstreftime = firstreftime + (10 - (firstreftime % 10))
-        while true do
-            if count > 1000 then break end
+        local t = math.ceil(time_elapsed)
+        for count = 1, 1000 do
             x,y = e:getPosition(t)
             x,y = camera:getScreenPoint(x,y)
             if  x >= 0 and x <= winx 
@@ -182,12 +175,16 @@ function love.draw()
             then
                 lg.circle('line', x, y, 3, 8)
             end
-            t, count = t+1, count+1
+            t = t + 1
         end
     end
 
     --draw path highlight of point closest to cursor
-    if not element_closest then return end
+    if not element_closest 
+    or element_closest[3] * camera:getScale() > 20 
+    then 
+        return 
+    end
     lg.setColor(0xff, 0xff, 0xff)
     local special_e, special_t = element_closest[1], element_closest[2]
     x, y = special_e:getPosition(special_t)
