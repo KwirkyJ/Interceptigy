@@ -192,6 +192,12 @@ TestInterlace.test_empty = function(self)
     assertEquals(p_empty:interlace(piecewise.Polynomial()), {},
                  'interlacing two empty polynomials gives an empty table')
 end
+TestInterlace.test_odd_pieces = function(self)
+    local pa = piecewise.Polynomial({3, 4,  130})
+    local pb = piecewise.Polynomial({9,-1.5, 80})
+    local expected = {{3, 1, nil}, {9, 1, 1}}
+    assertEquals(pa:interlace(pb), expected)
+end
 
 
 

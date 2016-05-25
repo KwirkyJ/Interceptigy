@@ -208,6 +208,17 @@ piecewise.interlace = function(p1, p2)
     while not done1 or not done2 do
         local s1, s2 = p1[i1][1], p2[i2][1]
         local start = math.min(s1, s2)
+        if done1 then
+            start = s2
+            t[#t+1] = {start, i1, i2}
+        elseif done2 then
+            start = s1
+            t[#t+1] = {start, i1, i2}
+        elseif start < p1[1][1] then -- before first piece in p1
+            t[#t+1] = {p2[i2][1], nil, i2}
+        elseif start < p2[1][1] then -- before first piece in p2
+            t[#t+1] = {p1[i1][1], i1, nil}
+--[[
         if start < p1[1][1] then -- before first piece in p1
             t[#t+1] = {p2[i2][1], nil, i2}
         elseif start < p2[1][1] then -- before first piece in p2
@@ -218,6 +229,7 @@ piecewise.interlace = function(p1, p2)
         elseif done2 then
             start = s1
             t[#t+1] = {start, i1, i2}
+--]]
         else
             if s1 > start then
                 t[#t+1] = {start, i1-1, i2}
