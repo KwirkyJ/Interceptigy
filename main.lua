@@ -6,6 +6,7 @@ local viewport  = require 'source.viewport'
 
 local MOUSEDRAG_ZOOM_CONSTANT = 50
 local WHEEL_ZOOM_CONSTANT = 10
+local MAX_PIXELS_TO_INTERACT = 20
 
 local lg      = love.graphics
 local lk      = love.keyboard
@@ -21,10 +22,11 @@ local camera
 local version = {love.getVersion()}
 local lmb, rmb = 1, 2
 if version[2] == 9 then lmb, rmb = 'l', 'r' end
+
 local element_being_manipulated -- {element, t}
 local element_closest -- {element, t, distance}
 local element_idstore = 0
-local movingCamera = "none" -- "drag", "zoom"
+local mouseState = "idle" --idle, drag, zoom, manipulate, manip-drag
 
 local function element_get_position(self, t)
     assert(type(t) == 'number')
@@ -91,35 +93,63 @@ function love.keypressed(key)
 end
 
 function love.mousemoved(x, y, dx, dy)
-    if movingCamera == 'drag' then
+    if mouseState == 'drag' or mouseState == 'manip-drag' then
         local scale = camera:getScale()
         camera:setPosition(-dx / scale, -dy / scale, true)
-    elseif movingCamera == 'zoom' then
+    elseif mouseState == 'zoom' then
         local zl = camera:getZoom()
         camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT, 'center')
-    else -- no camera manip
+    else -- idle
         local wx, wy = camera:getWorldPoint(x, y)
         find_closest_path(piecewise.Polynomial({time_elapsed, wx}),
                           piecewise.Polynomial({time_elapsed, wy}))
+    end
+    if mouseState == 'manip' 
+    or mouseState == 'manip-drag' 
+    and entity_being_manipulated then
+        -- manipulate entity
     end
 end
 
 function love.mousepressed(x, y, button)
     if button == rmb then
-        movingCamera = 'drag'
+        if mouseState == 'idle' then
+            mouseState = 'drag'
+        elseif mouseState == 'manip' then
+            mouseState = 'manip-drag'
+        end
     elseif button == lmb then
-        if movingCamera == 'drag' then
-            movingCamera = 'zoom'
+        if mouseState == 'drag' then
+            mouseState = 'zoom'
+        else
+            mouseState = 'manip'
+            if element_closest[3] * camera:getScale() 
+               <= MAX_PIXELS_TO_INTERACT
+            then
+                element_being_manipulated = {element_closest[1], element_closest[2]}
+            end
         end
     end
 end
 
 function love.mousereleased(x, y, button)
     if button == rmb then
-        movingCamera = 'none'
+        if mouseState == 'drag' then
+            mouseState = 'idle'
+        elseif mouseState == 'zoom' or mouseState == 'manip-drag' then
+            mouseState = 'manip'
+        end
     elseif button == lmb then
-        if movingCamera == 'zoom' then
-            movingCamera = 'drag'
+        if mouseState == 'manip' then
+            mouseState = 'idle'
+            -- make element change course
+            element_being_manipulated = nil
+        elseif mouseState == 'manip-drag' then
+            mouseState = 'drag'
+            -- make element change course
+            element_being_manipulated = nil
+        elseif mouseState == 'zoom' then
+            mouseState = 'drag'
         end
     end
 end
@@ -162,7 +192,14 @@ function love.draw()
         dx, dy = camera:getScreenPoint(e:getPosition(time_elapsed+1000))
         lg.setColor(e[3])
         lg.line(x, y, dx, dy)
-        lg.circle('fill', x, y, 6, 8)
+        if  element_being_manipulated
+        and e.id == element_being_manipulated[1].id then
+            lg.setColor(255-e[3][1], 255-e[3][2], 255-e[3][3])
+            lg.circle('fill', x, y, 6, 8)
+            lg.setColor(e[3])
+        else
+            lg.circle('fill', x, y, 6, 8)
+        end
         
         -- draw 'reference points' along track at equal time intervals
         -- TODO: scale predicted nodes interval about 'camera zoom'
@@ -178,14 +215,18 @@ function love.draw()
             t = t + 1
         end
     end
+    
+    lg.setColor(0xff, 0xff, 0xff)
+    --if element_being_manipulated then
+    --    lg.print("manipulating object: "..element_being_manipulated[1].id)
+    --end
 
     --draw path highlight of point closest to cursor
     if not element_closest 
-    or element_closest[3] * camera:getScale() > 20 
+    or element_closest[3] * camera:getScale() > MAX_PIXELS_TO_INTERACT 
     then 
         return 
     end
-    lg.setColor(0xff, 0xff, 0xff)
     local special_e, special_t = element_closest[1], element_closest[2]
     x, y = special_e:getPosition(special_t)
     if x and y then
