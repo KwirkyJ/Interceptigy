@@ -1,6 +1,7 @@
 -- testbed thing
 -- intercept and manipulation of tracks
 
+local entity    = require 'source.entity'
 local piecewise = require 'source.piecewise_poly'
 local viewport  = require 'source.viewport'
 
@@ -25,31 +26,15 @@ if version[2] == 9 then lmb, rmb = 'l', 'r' end
 
 local element_being_manipulated -- {element, t}
 local element_closest -- {element, t, distance}
-local element_idstore = 0
-local mouseState = "idle" --idle, drag, zoom, manipulate, manip-drag
+local mouseState = "idle" --idle, drag, zoom, manip, manip-drag
 
-local function element_get_position(self, t)
-    assert(type(t) == 'number')
-    return self[1](t), self[2](t)
-end
-
-local function new_element(colortable)
-    local startx, starty, vx, vy, fx, fy
-    startx, starty = random(winx), random(winy)
-    vx, vy = random(100), random(100)
-    --if random() > 0.5 then vx = -vx end
-    --if random() > 0.5 then vy = -vy end
-    if startx > winx/2 then vx = -vx end
-    if starty > winy/2 then vy = -vy end
-    fx = piecewise.Polynomial({time_elapsed, vx, startx - vx*time_elapsed})
-    fy = piecewise.Polynomial({time_elapsed, vy, starty - vy*time_elapsed})
-    element_idstore = element_idstore + 1
-    return {[1] = fx,
-            [2] = fy,
-            [3] = colortable or {random(0xff), random(0xff), random(0xff)},
-            ['id'] = element_idstore,
-            ['getPosition'] = element_get_position,
-           }
+local function new_element(colortable) 
+    local px, py = random(winx), random(winy)
+    local vx, vy = random(100), random(100)
+    if px > winx/2 then vx = -vx end
+    if py > winy/2 then vy = -vy end
+    colortable = colortable or {random(0xff), random(0xff), random(0xff)}
+    return entity.new(time_elapsed, px, py, vx, vy, colortable)
 end
 
 local function find_closest_path(fx, fy)
