@@ -22,7 +22,45 @@ TestNew.test_random = function(self)
     assertNumber(x)
     assertNumber(y)
 end
---TODO: getPosition at time before 'now' results in error
+
+
+
+TestGetPosition = {}
+--TestGetPosition.setUp = function(self)
+--    self.e = entity.new(0, math.random)
+--end
+TestGetPosition.test_nominal = function(self)
+    local e = entity.new(30, 50, 50, 2, 1.5, {255,255,255})
+    assertEquals({e:getPosition(30)}, {50, 50})
+    assertEquals({e:getPosition(80)}, {(80-30)*2+50, (80-30)*1.5+50})
+end
+TestGetPosition.test_before = function(self)
+    local e = entity.new(30, 50, 50, 2, 1.5, {255,255,255})
+    assertError(e.getPosition, e, 20)
+end
+TestGetPosition.test_typecheck = function(self)
+    local e = entity.new(0, math.random)
+    for _, t in pairs({a='4', b=nil, c={}, d=function() return end}) do
+        assertError(e.getPosition, e, t)
+    end
+end
+
+
+
+--TODO: TestSetPosition = {}
+--TODO: TestGetVelocity = {}
+--TODO: TestSetVelocity = {}
+
+
+
+TestManipID = {}
+TestManipID.test_manip = function(self)
+    local e = entity.new(50, math.random)
+    e:setManip(350)
+    assertEquals(e:getManip(), 350)
+    e:setManip()
+    assertNil( e:getManip() )
+end
 
 
 
