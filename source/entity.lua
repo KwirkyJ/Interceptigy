@@ -34,9 +34,9 @@ end
 -- @param vy     Y-velocity
 -- @param color  table of three color values (RGB, each 0..255)
 -- @param random random function (e.g., math.random)
--- @raturn Entity.
+-- @return Entity.
 entity.new = function(now, px, py, vx, vy, color)
-    if type(px) == 'function' then
+    if type(px) == 'function' then -- assume is a random number generator
         local rand = px
         px = rand()
         py = rand()
