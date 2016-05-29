@@ -4,12 +4,6 @@ local entity = {}
 
 local idstore = 0
 
----get the ID assigned to the last entity created
--- useful for debugging
-entity.get_prev_id = function()
-    return idstore
-end
-
 --- get the position of an entity at time t
 entity.getPosition = function(e, t)
     if type(t) ~= 'number' then
