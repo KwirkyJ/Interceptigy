@@ -218,6 +218,18 @@ viewport.zoom = function(self, delta, where, wherey)
     self.zoomDelta = delta
 end
 
+---Helper function to translate the viewport that screen/world points overlap
+-- @param self Viewport
+-- @param sx   Screen x coordinate
+-- @param sy   Screen y coordinate
+-- @param wx   World x coordinate
+-- @param wy   World y coordinate
+-- @return Nothing
+viewport.matchPointsScreenWorld = function (self, sx, sy, wx, wy)
+    local cwx, cwy = self:getWorldPoint(sx, sy)
+    self:setPosition(wx-cwx, wy-cwy, true)
+end
+
 ---Create a new Viewport object
 viewport.new = function(width, height)
     return {x         = 0,
@@ -249,6 +261,7 @@ viewport.new = function(width, height)
             setZoomBase    = viewport.setZoomBase,
             getZoomRate    = viewport.getZoomRate,
             setZoomRate    = viewport.setZoomRate,
+            matchPointsScreenWorld = viewport.matchPointsScreenWorld,
             zoom           = viewport.zoom,
            }
 end

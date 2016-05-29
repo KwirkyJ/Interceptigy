@@ -230,6 +230,21 @@ TestConcurrent.test_pan_and_zoom = function(self)
     --
 end
 
+TestMatchPoint = {}
+TestMatchPoint.setUp = function(self)
+    self.vp = viewport.new(600,300)
+end
+TestMatchPoint.test_match = function(self)
+    self.vp:setScale(3*math.random())
+    self.vp:matchPointsScreenWorld(88, 94, 1234, -543)
+    local x, y = self.vp:getScreenPoint(1234, -543)
+    assertAlmostEquals(x, 88, 1e-12)
+    assertAlmostEquals(y, 94, 1e-12)
+    x, y = self.vp:getWorldPoint(0, 0)
+    assert(x < 1234)
+    assert(y < -543)
+end
+
 
 
 luaunit:run()
