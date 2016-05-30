@@ -29,9 +29,6 @@ end
 
 
 TestGetPosition = {}
---TestGetPosition.setUp = function(self)
---    self.e = entity.new(0, math.random)
---end
 TestGetPosition.test_nominal = function(self)
     local e = entity.new(30, 50, 50, 2, 1.5, {255,255,255})
     assertEquals({e:getPosition(30)}, {50, 50})
@@ -53,6 +50,7 @@ end
 --TODO: TestSetPosition = {}
 --TODO: TestGetVelocity = {}
 --TODO: TestSetVelocity = {}
+--TODO: TestUpdate = {}
 
 
 
