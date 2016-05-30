@@ -12,14 +12,14 @@ entity.getPosition = function(e, t)
     return e[1](t), e[2](t)
 end
 
----get the time of manipulation for its track, if any
-entity.getManip = function(e)
-    return e.manip
+---get the time of interaction for entity's track, if any
+entity.getTInt = function(e)
+    return e.t_interact
 end
 
----set/reset manipulation time for the entity
-entity.setManip = function(e, t)
-    e.manip = t
+---set/reset interaction time for the entity
+entity.setTInt = function(e, t)
+    e.t_interact = t
 end
 
 ---create a new entity object
@@ -46,11 +46,11 @@ entity.new = function(now, px, py, vx, vy, color)
     return {[1] = piecewise_poly.Polynomial({now, vx, px - vx*now}),
             [2] = piecewise_poly.Polynomial({now, vy, py - vy*now}),
             [3] = color,
-            manip = nil,
+            t_interact = nil,
             id = idstore,
             getPosition = entity.getPosition,
-            getManip = entity.getManip,
-            setManip = entity.setManip,
+            getTInt = entity.getTInt,
+            setTInt = entity.setTInt,
            }
 end
 

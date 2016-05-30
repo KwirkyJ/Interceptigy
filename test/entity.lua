@@ -39,7 +39,6 @@ TestGetPosition.test_nominal = function(self)
 end
 TestGetPosition.test_before = function(self)
     local e = entity.new(30, 50, 50, 2, 1.5, {255,255,255})
-    --assertError(e.getPosition, e, 20)
     assertNil(e:getPosition(20))
 end
 TestGetPosition.test_typecheck = function(self)
@@ -57,13 +56,13 @@ end
 
 
 
-TestManipID = {}
-TestManipID.test_manip = function(self)
+TestGetTInt = {}
+TestGetTInt.test_manip = function(self)
     local e = entity.new(50, math.random)
-    e:setManip(350)
-    assertEquals(e:getManip(), 350)
-    e:setManip()
-    assertNil( e:getManip() )
+    e:setTInt(350)
+    assertEquals(e:getTInt(), 350)
+    e:setTInt()
+    assertNil( e:getTInt() )
 end
 
 
