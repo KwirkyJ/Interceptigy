@@ -39,7 +39,8 @@ TestGetPosition.test_nominal = function(self)
 end
 TestGetPosition.test_before = function(self)
     local e = entity.new(30, 50, 50, 2, 1.5, {255,255,255})
-    assertError(e.getPosition, e, 20)
+    --assertError(e.getPosition, e, 20)
+    assertNil(e:getPosition(20))
 end
 TestGetPosition.test_typecheck = function(self)
     local e = entity.new(0, math.random)

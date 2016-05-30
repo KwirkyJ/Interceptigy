@@ -8,8 +8,6 @@ local idstore = 0
 entity.getPosition = function(e, t)
     if type(t) ~= 'number' then
         error('time index must be a number')
-    elseif t < e[1]:getStarts()[1] then 
-        error('getPosition requires time index within polynomial bounds') 
     end
     return e[1](t), e[2](t)
 end
