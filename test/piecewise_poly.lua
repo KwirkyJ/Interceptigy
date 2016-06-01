@@ -220,6 +220,12 @@ TestOperations.test_subtract = function(self)
     expected:insert(4, {-3, 0, 3,  -4})
     assertEquals(piecewise.subtract(self.p1, self.p2), expected)
     assertEquals(self.p1:subtract(self.p2), expected)
+    
+    -- operations do not modify original functions
+    local ident = piecewise.Polynomial()
+    ident:insert(0,     2, 0.5, 0)
+    ident:insert(4, -3, 0, 3, 2)
+    assertEquals(self.p1, ident)
 end
 --TODO: TestOperations.test_subtract_errors = function(self) end
 TestOperations.test_add = function(self)
@@ -244,6 +250,12 @@ TestOperations.test_multiply = function(self)
     assertEquals(piecewise.multiply(self.p2, self.p1), expected, 'commutative')
     assertEquals(self.p1:multiply(self.p2), expected)
     assertEquals(self.p2:multiply(self.p1), expected, 'commutative non-module')
+    
+    -- operations do not modify original functions
+    local ident = piecewise.Polynomial()
+    ident:insert(0,     2, 0.5, 0)
+    ident:insert(4, -3, 0, 3, 2)
+    assertEquals(self.p1, ident)
 end
 TestOperations.test_square = function(self)
     expected = piecewise.Polynomial()
@@ -376,6 +388,13 @@ TestDerive.test_getDerivative = function(self)
     e:insert(30,       -8, 1)
     assertEquals(self.p:getDerivative(), e)
     assertEquals(piecewise.getDerivative(self.p), e, 'module call')
+    
+    local ident = piecewise.Polynomial()
+    ident:insert( 3, 5,  0, 0, 0.5, 2)
+    ident:insert(20,           3, -12)
+    ident:insert(22,              120)
+    ident:insert(30,       -4, 1,   1)
+    assertEquals(self.p, ident)
 end
 TestDerive.test_getGrowth_empty = function(self)
     assertNil(self.p:getGrowth(2.2))
