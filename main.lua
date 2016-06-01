@@ -24,11 +24,28 @@ local version = {love.getVersion()}
 local lmb, rmb = 1, 2
 if version[2] == 9 then lmb, rmb = 'l', 'r' end
 
-local element_being_manipulated -- element-entity
-local element_closest -- {element, t, distance}
+local e_manip -- element-entity
+local e_close -- {element, t, distance}
 local mouseState = "idle" --idle, drag, zoom, manip, manip-drag
 
-local function new_element(colortable) 
+---Flag manipulation of the closest element/entity, if applicable
+local function initManip()
+    
+end
+
+---Conclude element/entity manipulation
+local function demanip(abort)
+    if abort then
+    else
+    end
+end
+
+---Whether or not e_closest is 'within hot range'
+local function isCloseHot()
+    return e_close[3]*camera:getScale() <= MAX_PIXELS_TO_INTERACT
+end
+
+local function newElement(colortable) 
     local px, py = random(winx), random(winy)
     local vx, vy = random(100), random(100)
     if px > winx/2 then vx = -vx end
@@ -38,35 +55,37 @@ local function new_element(colortable)
 end
 
 ---find time and distance of closest approach between two 2d functions
-local function calc_closest(f1x, f1y, f2x, f2y)
+-- returned distance has not been square-rooted!
+local function calcClosest(f1x, f1y, f2x, f2y)
     local dx, dy, t, fd, d
     dx, dy = f1x:subtract(f2x), f1y:subtract(f2y)
     fd = piecewise.add(dx:square(), dy:square()):getDerivative()
     t = time_elapsed
     for _,r in ipairs(fd:getRoots(0)) do
-        if r > t then t=r; break end
+        if r > t then t=r; break end --TODO: possible case of type(r)=='table'
     end
     d = dx(t)^2 + dy(t)^2
     return t, d
 end
 
 ---find the entity closest to (or track closest to) the current screen point
--- and store it, time, and distance in element_closest table
-local function populate_closest_entity(x, y)
-    element_closest = nil
+-- and store it, time, and distance in e_close table
+local function populateClosestEntity(x, y)
+    e_close = nil
     local wx, wy = camera:getWorldPoint(x, y)
     local x = piecewise.Polynomial({time_elapsed, wx}) -- mouse thu time
     local y = piecewise.Polynomial({time_elapsed, wy})
     
     local t_best, d_best, e_best = time_elapsed, math.huge, nil
     for _,e in ipairs(es) do
-        local t, d = calc_closest(x,y, e[1], e[2])
+        local t, d = calcClosest(x,y, e[1], e[2])
         if d < d_best then
             t_best, d_best, e_best = t, d, e
         end
     end
     if e_best then
-        element_closest = {e_best, t_best, d_best^0.5}
+        d_best = d_best^0.5
+        e_close = {e_best, t_best, d_best}
     end
 end
 
@@ -75,7 +94,7 @@ function love.load()
     time_elapsed = 0
     winx, winy = lg.getDimensions()
     love.math.setRandomSeed(getTime())
-    es = {new_element(), new_element()}
+    es = {newElement(), newElement()}
     camera = viewport.new(winx, winy)
     camera:setPanRate(100)
     camera:setZoomRate(2)
@@ -85,7 +104,7 @@ function love.keypressed(key)
     if key == 'escape' then love.event.push('quit') end
    
     if key == ' ' or key == 'space' then -- backwards-compatibility
-        es = {new_element(), new_element()}
+        es = {newElement(), newElement()}
         camera:setScale(1)
         camera:setPosition(0, 0)
     end
@@ -97,11 +116,11 @@ function love.mousemoved(x, y, dx, dy)
         camera:setPosition(-dx / scale, -dy / scale, true)
     elseif mouseState == 'zoom' then
         local zl  = camera:getZoom()
-        local x,y = camera:getWorldPoint(lm.getPosition())
+        local wx,wy = camera:getWorldPoint(lm.getPosition())
         camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT)
-        camera:matchPointsScreenWorld(lm.getX(), lm.getY(), x, y)
-    else -- idle
-        populate_closest_entity(x, y)
+        camera:matchPointsScreenWorld(lm.getX(), lm.getY(), wx, wy)
+--    else -- idle
+--        populateClosestEntity(x, y)
     end
     if mouseState == 'manip' 
     or mouseState == 'manip-drag' 
@@ -122,13 +141,13 @@ function love.mousepressed(x, y, button)
             mouseState = 'zoom'
         else
             mouseState = 'manip'
-            local e, t, d = element_closest[1], 
-                            element_closest[2], 
-                            element_closest[3]
-            if d * camera:getScale() <= MAX_PIXELS_TO_INTERACT
+            --local e, t, d = e_close[1], e_close[2], e_close[3]
+            --if d * camera:getScale() <= MAX_PIXELS_TO_INTERACT
+            if isCloseHot()
             then
+                local e, t = e_close[1], e_close[2]
                 e:setTInt(t)
-                element_being_manipulated = {e, t}
+                e_manip = {e, t}
             end
         end
     end
@@ -145,15 +164,17 @@ function love.mousereleased(x, y, button)
         if mouseState == 'manip' then
             mouseState = 'idle'
             -- make element change course
-            if element_being_manipulated then
-                element_being_manipulated[1]:setTInt(nil)
-                element_being_manipulated = nil
+            if e_manip then
+                e_manip[1]:setTInt(nil)
+                e_manip = nil
             end
         elseif mouseState == 'manip-drag' then
             mouseState = 'drag'
             -- make element change course
-            element_being_manipulated[1]:setTInt(nil)
-            element_being_manipulated = nil
+            if e_manip then
+                e_manip[1]:setTInt(nil)
+                e_manip = nil
+            end
         elseif mouseState == 'zoom' then
             mouseState = 'drag'
         end
@@ -171,16 +192,18 @@ if version[2] > 9 then
 end
 
 function love.update(dt)
+    populateClosestEntity(lm.getPosition())
     time_elapsed = getTime() - starttime
+    
     for i=1, #es do
-        --local t_manip = es[i]:getTInt()
-        --if t_manip and t_manip < time_elapsed then
-        --    es[i]:setTInt(nil)
-        --    element_being_manipulated = nil
-        --end
+        local t_manip = es[i]:getTInt()
+        if t_manip and t_manip < time_elapsed then
+            es[i]:setTInt(nil)
+            e_manip = nil
+        end
         local ex, ey = es[i]:getPosition(time_elapsed)
         if 0 > ex or ex > winx or 0 > ey or ey > winy then
-            es[i] = new_element()
+            es[i] = newElement()
         else es[i][1]:clearBefore(time_elapsed)
              es[i][2]:clearBefore(time_elapsed)
         end
@@ -230,20 +253,21 @@ function love.draw()
     end
     
     lg.setColor(0xff, 0xff, 0xff)
-    --if element_being_manipulated then
-    --    lg.print("manipulating object: "..element_being_manipulated[1].id)
+    --if e_manip then
+    --    lg.print("manipulating object: "..e_manip[1].id)
     --end
 
-    --draw path highlight of point closest to cursor
-    if element_closest
-    and element_closest[3] * camera:getScale() <= MAX_PIXELS_TO_INTERACT
-    then
-        local special_e, special_t = element_closest[1], element_closest[2]
+    -- draw path highlight of point closest to cursor
+    -- and highlight the element itself
+    if isCloseHot() then
+        local special_e, special_t = e_close[1], e_close[2]
         x, y = special_e:getPosition(special_t)
         if x and y then
             x, y = camera:getScreenPoint(x, y)
             lg.circle('fill', x, y, 3, 8)
         end
+        x, y = camera:getScreenPoint(special_e:getPosition(time_elapsed))
+        lg.circle('line', x, y, 10, 12)
     end
     --x, y = lm.getPosition()
     --lg.circle('fill', x, y, 3, 8)
