@@ -2,6 +2,8 @@
 
 local moretables = require 'lib.moretables.init'
 
+local unpack = unpack or table.unpack
+
 local piecewise = {}
 
 ---Add a new piece to the polynomial.
@@ -87,43 +89,37 @@ piecewise.getRoots = function(P, v)
     if not P[1] then return {} end
     local roots, t_start, t_stop, t, coeffs = {}
     for i=1, #P do
-        t_start, coeffs = P[i][1], P[i][2]
-        if P[i+1] then t_stop = P[i+1][1]
-        else t_stop = math.huge
-        end
+        t_start, coeffs, t_stop = P[i][1], P[i][2], math.huge
+        if P[i+1] then t_stop = P[i+1][1] end
         --assert(type(t_start) == 'number')
         --assert(type(t_stop)  == 'number')
         --assert(type(coeffs)  == 'table')
-        if #coeffs == 1 then
+        if #coeffs == 1 then -- constant
             if coeffs[1] == v then
                 roots[#roots+1] = {t_start, t_stop}
             end
-        elseif #coeffs == 2 then
+        elseif #coeffs == 2 then -- linear
             t = (v - coeffs[2]) / coeffs[1]
             if t >= t_start and t < t_stop then
                 roots[#roots+1] = t
             end
-        elseif #coeffs == 3 then
-            -- x = (-b +/- (b^2 + 4ac)^0.5) / (2a)
-            local a, b, c = coeffs[1], coeffs[2], coeffs[3]
-            c = c - v
+        elseif #coeffs == 3 then -- quadratic
+            -- x = (-b +/- (b^2 - 4ac)^0.5) / (2a)
+            local a, b, c = coeffs[1], coeffs[2], coeffs[3]-v
             t = (b^2 - 4*a*c)
             if t >= 0 then
                 t = t^0.5
-                local t1, t2 = (-(b+t))/(2*a), (t-b)/(2*a)
+                local t1, t2 = (-b-t)/(2*a), (t-b)/(2*a)
                 if t1 == t2 then 
                     t2 = nil
                 elseif t2 < t1 then 
                     t1, t2 = t2, t1 
                 end
-                --t1, t2 = math.min(t1, t2), math.max(t1, t2)
-                if t1 >= t_start and t1 < t_stop then
+                if t_start <= t1 and t1 < t_stop then
                     roots[#roots+1] = t1
                 end
-                if  t2
-                and t2 >= t_start 
-                and t2 < t_stop 
-                then roots[#roots+1] = t2
+                if t2 and t2 >= t_start and t2 < t_stop then
+                    roots[#roots+1] = t2
                 end
             end
         else 
@@ -133,6 +129,14 @@ piecewise.getRoots = function(P, v)
     return roots
 end
 
+piecewise.clone = function(P)
+    local c = piecewise.Polynomial()
+    for i=1, #P do
+        c:insert(unpack(P[i]))
+    end
+    return c
+end
+
 ---Get the derivative of a piece by its coefficients
 -- if no time t is provided, returns a table of new coefficients;
 -- else solves resulting polynomial at time t and returns number
@@ -140,7 +144,7 @@ local function derivePiece(coeffs, t)
     local degree, dc, newc = #coeffs, {}
     if t then dc = 0 end
     if degree == 1 then 
-        if not t then dc = {0} end
+        if t then dc = 0 else dc = {0} end
     else
         for i=1, degree-1 do
             newc = coeffs[i] * (degree-i)
@@ -156,8 +160,12 @@ end
 
 ---Get the instantaneous derivative at time t
 piecewise.getGrowth = function(P, t)
-    for _,piece in ipairs(P) do
-        if piece[1] < t then 
+    local t0, t1
+    for i=1, #P do
+        local piece = P[i]
+        t0, t1 = piece[1], math.huge
+        if P[i+1] then t1 = P[i+1][1] end
+        if t0 <= t and t <= t1 then 
             return derivePiece(piece[2], t)
         end
     end
@@ -351,6 +359,7 @@ end
 piecewise.Polynomial = function(...)
     local pp = {add           = piecewise.add,
                 clearBefore   = piecewise.clearBefore,
+                clone         = piecewise.clone,
                 divide        = piecewise.divide,
                 evaluate      = piecewise.evaluate,
                 getDerivative = piecewise.getDerivative,

@@ -201,6 +201,34 @@ end
 
 
 
+TestClone = {}
+TestClone.test_empty = function(self)
+    local p = piecewise.Polynomial()
+    assertEquals(p:clone(), p)
+    assertEquals(piecewise.clone(p), p)
+end
+TestClone.test_nominal = function(self)
+    local p = piecewise.Polynomial()
+    p:insert(5, -3, 0, 0, 2)
+    p:insert(143, 1, 1, -5, 3)
+    p:insert(-3, 4)
+    local expect = piecewise.Polynomial()
+    expect:insert( -3,          4)
+    expect:insert(  5,-3, 0, 0, 2)
+    expect:insert(143, 1, 1,-5, 3)
+    assertEquals(p:clone(), expect)
+    assertEquals(piecewise.clone(p), expect)
+end
+TestClone.test_change = function(self)
+    local p = piecewise.Polynomial({4, 5, 2, 3, 1})
+    local clone = p:clone()
+    assertEquals(clone, p)
+    p:insert(4, 2, 7)
+    assertNotEquals(clone, p, 'p has changed; clone has not')
+end
+
+
+
 TestOperations = {}
 TestOperations.setUp = function(self)
     self.p1 = piecewise.Polynomial()
@@ -213,6 +241,7 @@ TestOperations.setUp = function(self)
     self.p2:insert(4,             6)
 end
 TestOperations.test_subtract = function(self)
+    local ident = self.p1:clone()
     local expected = piecewise.Polynomial()
     expected:insert(0, {    2, 0.5, 0})
     expected:insert(1, {    1, 0.5, 4.2})
@@ -221,14 +250,11 @@ TestOperations.test_subtract = function(self)
     assertEquals(piecewise.subtract(self.p1, self.p2), expected)
     assertEquals(self.p1:subtract(self.p2), expected)
     
-    -- operations do not modify original functions
-    local ident = piecewise.Polynomial()
-    ident:insert(0,     2, 0.5, 0)
-    ident:insert(4, -3, 0, 3, 2)
-    assertEquals(self.p1, ident)
+    assertEquals(self.p1, ident, 'original is unmodified')
 end
 --TODO: TestOperations.test_subtract_errors = function(self) end
 TestOperations.test_add = function(self)
+    local ident = self.p2:clone()
     local expected = piecewise.Polynomial()
     expected:insert(0,     2, 0.5, 0)
     expected:insert(1,     3, 0.5,-4.2)
@@ -238,8 +264,11 @@ TestOperations.test_add = function(self)
     assertEquals(piecewise.add(self.p2, self.p1), expected, 'commutative')
     assertEquals(self.p1:add(self.p2), expected)
     assertEquals(self.p2:add(self.p1), expected, 'commutative non-module')
+    
+    assertEquals(self.p2, ident, 'original is unmodified')
 end
 TestOperations.test_multiply = function(self)
+    local ident = self.p1:clone()
     local expected = piecewise.Polynomial()
     expected:insert(0, 2, 0.5, 0)--(2x^2+0.5x+0)(nil)
     expected:insert(1, 2, 0.5, -4.2*2, -4.2*0.5, -4.2*0)--(2x^2+0.5x+0)(x^2+0x-4.2)
@@ -251,20 +280,19 @@ TestOperations.test_multiply = function(self)
     assertEquals(self.p1:multiply(self.p2), expected)
     assertEquals(self.p2:multiply(self.p1), expected, 'commutative non-module')
     
-    -- operations do not modify original functions
-    local ident = piecewise.Polynomial()
-    ident:insert(0,     2, 0.5, 0)
-    ident:insert(4, -3, 0, 3, 2)
     assertEquals(self.p1, ident)
 end
 TestOperations.test_square = function(self)
-    expected = piecewise.Polynomial()
+    local ident = self.p1:clone()
+    local expected = piecewise.Polynomial()
     expected:insert(0, 4, 2, 0.25, 0, 0)
     -- 4x^2 + 1x^3 + 1x^3 + 0.25x^2
     expected:insert(4, 9, 0, -18, -12, 9, 12, 4)
     --9x^6 + -9x^4 + -6x^3 + -9x^4 + 9x^2 + 6x + -6x^3 + 6x + 4
     assertEquals(piecewise.square(self.p1), expected)
     assertEquals(self.p1:square(), expected, 'module call')
+    
+    assertEquals(self.p1, ident)
 end
 TestOperations.test_divide = function(self)
     assertError('division is not (yet) supported', nil, 
@@ -405,6 +433,15 @@ TestDerive.test_getGrowth = function(self)
     assertNil(self.p:getGrowth(2.2))
     assertAlmostEquals(self.p:getGrowth(6), -2.4*6 + 8, 1e-12)
     assertAlmostEquals(piecewise.getGrowth(self.p, 6), -2.4*6 + 8, 1e-12)
+end
+TestDerive.test_getGrowth_several = function(self)
+    self.p:insert(0, 4, 2, 5)
+    self.p:insert(4,    1, 1)
+    self.p:insert(9,      20)
+    assertNil(self.p:getGrowth(-1.5))
+    assertAlmostEquals(self.p:getGrowth(3),  26, 1e-12)
+    assertAlmostEquals(self.p:getGrowth(5),   1, 1e-12)
+    assertAlmostEquals(self.p:getGrowth(100), 0, 1e-12)
 end
 
 
