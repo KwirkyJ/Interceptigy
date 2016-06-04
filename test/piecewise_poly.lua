@@ -327,6 +327,11 @@ TestRoot.test_constant = function(self)
     assertEquals(self.p:getRoots(4), {{-1, math.huge}},
                  'constant match has range of roots')
 end
+TestRoot.test_constant_zero = function(self)
+    self.p:insert(5, 0)
+    assertEquals(self.p:getRoots(0), {{5, math.huge}})
+    assertEquals(self.p:getRoots(1), {}, 'constant zero ~= 1')
+end
 TestRoot.test_constant_piece = function(self)
    self.p:insert(0,  4)
    self.p:insert(5, -3)
@@ -428,10 +433,10 @@ TestDerive.test_getDerivative = function(self)
     assertEquals(piecewise.getDerivative(self.p), e, 'module call')
     
     local ident = piecewise.Polynomial()
-    ident:insert( 3, 5,  0, 0, 0.5, 2)
-    ident:insert(20,           3, -12)
-    ident:insert(22,              120)
-    ident:insert(30,       -4, 1,   1)
+    ident:insert( 3, 5, 0, 0, 0.5, 2)
+    ident:insert(20,          3, -12)
+    ident:insert(22,             120)
+    ident:insert(30,      -4, 1,   1)
     assertEquals(self.p, ident)
 end
 TestDerive.test_getDerivative_zero = function(self)

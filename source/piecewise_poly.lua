@@ -25,6 +25,7 @@ piecewise.insert = function(P, t1, ...)
             n = n+1
         end
     end
+    if #coeffs == 0 then coeffs = {0} end
     
     if not P[1] then
         P[1] = {t1, coeffs}
