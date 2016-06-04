@@ -26,6 +26,11 @@ TestPrepopulate.test_errors = function(self)
     assertError('table must have at least two numbers (at 3)',
                 piecewise.Polynomial, {0,1,2}, {4,2,1}, {5}, {5,3})
 end
+TestPrepopulate.test_zero = function(self)
+    local p = piecewise.Polynomial({5, 0})
+    assertNil(p(4))
+    assertEquals(p(10), 0)
+end
 
 TestInsertAndEvaluate = {}
 TestInsertAndEvaluate.setUp = function(self)
@@ -68,6 +73,11 @@ end
 TestInsertAndEvaluate.test_insert_vararg_coefficients = function(self)
     self.p:insert(0, -7, 2)
     assertAlmostEquals(self.p(5), 5*(-7) + 2, 1e-12)
+end
+TestInsertAndEvaluate.test_zero = function(self)
+    self.p:insert(5, 0)
+    assertNil(self.p(1))
+    assertEquals(self.p(7), 0)
 end
 TestInsertAndEvaluate.test_more_pieces = function(self)
     self.p:insert(3,  -0.5, 3, 0, 2)
@@ -423,6 +433,11 @@ TestDerive.test_getDerivative = function(self)
     ident:insert(22,              120)
     ident:insert(30,       -4, 1,   1)
     assertEquals(self.p, ident)
+end
+TestDerive.test_getDerivative_zero = function(self)
+    self.p:insert(5, 0)
+    local expected = piecewise.Polynomial({5, 0})
+    assertEquals(self.p:getDerivative(), expected)
 end
 TestDerive.test_getGrowth_empty = function(self)
     assertNil(self.p:getGrowth(2.2))

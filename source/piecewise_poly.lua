@@ -143,7 +143,7 @@ end
 local function derivePiece(coeffs, t)
     local degree, dc, newc = #coeffs, {}
     if t then dc = 0 end
-    if degree == 1 then 
+    if degree < 2 then 
         if t then dc = 0 else dc = {0} end
     else
         for i=1, degree-1 do
