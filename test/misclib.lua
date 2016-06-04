@@ -1,5 +1,8 @@
+local misclib   = require 'source.misclib'
+local piecewise = require 'source.piecewise_poly'
+local track     = require 'source.trackfactory'
+
 local luaunit = require 'luaunit.luaunit'
-local misclib = require 'source.misclib'
 
 --TODO: rename function and module names
 --TODO: more test cases to verify
@@ -62,6 +65,32 @@ TestBurnpoint.test_thing = function(self)
     assertEquals(cy, p0_y - 1/2*ay*t0^2 - by*t0)
     assertEquals(dy, ay*ta + by)
     assertEquals(ey, p1_y - dy*t1)
+end
+
+
+
+TestFindClosest = {}
+TestFindClosest.test_constants = function(self)
+    local now = 5
+    local f1x, f1y = track.new(now,20,80)
+    local f2x, f2y = track.new(now, 0, 0)
+    local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
+    assertAlmostEquals(t, 5, 1e-12)
+    assertAlmostEquals(d, (20^2 + 80^2), 1e-12)
+end
+TestFindClosest.test_const_and_line = function(self)
+    local Poly = piecewise.Polynomial
+    local now = 5
+    local f1x, f1y = track.new(now, 30, 80, 1, -0.5)
+    local f2x, f2y = track.new(now, 50, 50)
+    local c1x, c2x, c1y, c2y = f1x:clone(), f2x:clone(), f1y:clone(), f2y:clone()
+    local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
+    assertAlmostEquals(t, 33, 1e-12)
+    assertAlmostEquals(d, 320, 1e-12) --, 'distance is still squared')
+    assertEquals(f1x, c1x)
+    assertEquals(f2x, c2x)
+    assertEquals(f1y, c1y)
+    assertEquals(f2y, c2y)
 end
 
 luaunit:run(arg)

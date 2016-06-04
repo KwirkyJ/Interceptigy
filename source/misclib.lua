@@ -1,3 +1,5 @@
+local piecewise = require 'source.piecewise_poly'
+
 local misclib = {}
 
 ---calculate the acceleration required to adjust a position/velocty to
@@ -67,6 +69,26 @@ misclib.find_burnpoint = function(t0, p0_x, p0_y, v0_x, v0_y,
     ey = p1_y - dy*t1
 
     return ta, bx,cx,dx,ex, by,cy,dy,ey
+end
+
+
+
+misclib.findClosest = function(t0, fx1, fy1, fx2, fy2)
+    local dx, dy, t, fd
+    assert(fx1, 'fx1 must not be nil')
+    assert(fx2, 'fx2 must not be nil')
+    assert(fy1, 'fy1 must not be nil')
+    assert(fy2, 'fy2 must not be nil')
+    dx, dy = fx1:subtract(fx2), fy1:subtract(fy2)
+    fd = piecewise.add(dx:square(), dy:square()):getDerivative()
+    t = t0
+    local roots = fd:getRoots(0)
+    if #roots == 0 then return nil end
+    for _,r in ipairs(roots) do
+        if type(r) == 'table' then r = r[1] end
+        if r > t then t=r; break end
+    end
+    return t, dx(t)^2 + dy(t)^2
 end
 
 return misclib
