@@ -1,4 +1,5 @@
 local piecewise_poly = require 'source.piecewise_poly'
+local trackfactory   = require 'source.trackfactory'
 
 local entity = {}
 
@@ -43,8 +44,9 @@ entity.new = function(now, px, py, vx, vy, color)
         color = {rand(255), rand(255), rand(255)}
     end
     idstore = idstore + 1
-    return {[1] = piecewise_poly.Polynomial({now, vx, px - vx*now}),
-            [2] = piecewise_poly.Polynomial({now, vy, py - vy*now}),
+    local fx, fy = trackfactory.new(now, px, py, vx, vy)
+    return {[1] = fx,
+            [2] = fy,
             [3] = color,
             t_interact = nil,
             id = idstore,
