@@ -12,8 +12,9 @@ TestBurnframe.test_thing = function(self)
     local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80, 20,0.5, 1.0, -25, -10, 50
     local ax, ay = misclib.find_burnframe(v0_x, v0_y, dx, dy, dt)
     -- kinematic eqn 1 : 
-    -- d == vt + 1/2at^2
-    -- d - vt == 1/2at^2
+    -- d == vt + 1/2a*t^2
+    -- d - vt == 1/2a*t^2
+    -- (d - vt)*2 == a*t^2
     -- (d - vt)*2/t^2 == a
     assertEquals(ax, (dx - v0_x*dt)*2/dt^2)
     assertEquals(ay, (dy - v0_y*dt)*2/dt^2)
@@ -76,7 +77,7 @@ TestFindClosest.test_constants = function(self)
     local f2x, f2y = track.new(now, 0, 0)
     local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
     assertAlmostEquals(t, 5, 1e-12)
-    assertAlmostEquals(d, (20^2 + 80^2), 1e-12)
+    assertAlmostEquals(d, (20^2 + 80^2), 1e-12, 'returned distance is squared')
 end
 TestFindClosest.test_const_and_line = function(self)
     local Poly = piecewise.Polynomial
