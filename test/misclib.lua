@@ -84,15 +84,25 @@ TestFindClosest.test_const_and_line = function(self)
     local now = 5
     local f1x, f1y = track.new(now, 30, 80, 1, -0.5)
     local f2x, f2y = track.new(now, 50, 50)
-    local c1x, c2x, c1y, c2y = f1x:clone(), f2x:clone(), f1y:clone(), f2y:clone()
     local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
     assertAlmostEquals(t, 33, 1e-12)
-    assertAlmostEquals(d, 320, 1e-12) --, 'distance is still squared')
+    assertAlmostEquals(d, 320, 1e-12) -- distance is still squared
+end
+TestFindClosest.test_inputs_unaltered = function(self)
+    local now = 8
+    local sometime = 88
+    local f1x, f1y = track.new(now, 30, 80, 1, -0.5)
+    local f2x, f2y = track.new(now, 50, 50)
+    local c1x, c2x, c1y, c2y = f1x:clone(), f2x:clone(), f1y:clone(), f2y:clone()
+    local pxt = f1x(sometime)
+    _ = misclib.findClosest(now + 5*math.random(), f1x, f1y, f2x, f2y)
     assertEquals(f1x, c1x)
     assertEquals(f2x, c2x)
     assertEquals(f1y, c1y)
     assertEquals(f2y, c2y)
+    assertEquals(f1x:evaluate(sometime), pxt)
 end
+--TODO: two lines, combinations with curves
 
 luaunit:run(arg)
 
