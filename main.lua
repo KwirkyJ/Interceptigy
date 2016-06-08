@@ -2,7 +2,9 @@
 -- intercept and manipulation of tracks
 
 local entity    = require 'source.entity'
+local misc      = require 'source.misclib'
 local piecewise = require 'source.piecewise_poly'
+local track     = require 'source.trackfactory'
 local viewport  = require 'source.viewport'
 
 local MOUSEDRAG_ZOOM_CONSTANT = 50
@@ -17,7 +19,7 @@ local getTime = love.timer.getTime
 
 local es
 local winx, winy
-local starttime, time_elapsed
+local starttime, now
 local camera
 
 local version = {love.getVersion()}
@@ -27,71 +29,59 @@ if version[2] == 9 then lmb, rmb = 'l', 'r' end
 local e_manip -- element-entity
 local e_close -- {element, t, distance}
 local mouseState = "idle" --idle, drag, zoom, manip, manip-drag
+local manip_path -- {fx, fy}
+local manip_ref -- {x, y, t}
 
 ---Flag manipulation of the closest element/entity, if applicable
 local function initManip()
-    
+    local e, t = e_close[1], e_close[2]
+    e:setTInt(t)
+    e_manip = e
 end
 
 ---Conclude element/entity manipulation
 local function demanip(abort)
-    if abort then
-    else
-    end
+    if not e_manip then return end
+    e_manip:setTInt(nil)
+    --if not abort then
+    --end
+    e_manip = nil
 end
 
 ---Whether or not e_closest is 'within hot range'
 local function isCloseHot()
-    return e_close[3]*camera:getScale() <= MAX_PIXELS_TO_INTERACT
+    return (e_close ~= nil) and (e_close[3]*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
 end
 
 local function newElement(colortable) 
     local px, py = random(winx), random(winy)
-    local vx, vy = random(100), random(100)
+    local vx, vy = random(30), random(30)
     if px > winx/2 then vx = -vx end
     if py > winy/2 then vy = -vy end
     colortable = colortable or {random(0xff), random(0xff), random(0xff)}
-    return entity.new(time_elapsed, px, py, vx, vy, colortable)
+    return entity.new(now, px, py, vx, vy, colortable)
 end
 
----find time and distance of closest approach between two 2d functions
--- returned distance has not been square-rooted!
-local function calcClosest(f1x, f1y, f2x, f2y)
-    local dx, dy, t, fd, d
-    dx, dy = f1x:subtract(f2x), f1y:subtract(f2y)
-    fd = piecewise.add(dx:square(), dy:square()):getDerivative()
-    t = time_elapsed
-    for _,r in ipairs(fd:getRoots(0)) do
-        if r > t then t=r; break end --TODO: possible case of type(r)=='table'
-    end
-    d = dx(t)^2 + dy(t)^2
-    return t, d
-end
-
----find the entity closest to (or track closest to) the current screen point
--- and store it, time, and distance in e_close table
-local function populateClosestEntity(x, y)
-    e_close = nil
-    local wx, wy = camera:getWorldPoint(x, y)
-    local x = piecewise.Polynomial({time_elapsed, wx}) -- mouse thu time
-    local y = piecewise.Polynomial({time_elapsed, wy})
+local function updateClosestEntity(mx, my, e)
+    local fx, fy, t_best, d_best, best
+    fx, fy = e[1], e[2]
+    _ = misc.findClosest(now, mx, my, fx, fy)
     
-    local t_best, d_best, e_best = time_elapsed, math.huge, nil
-    for _,e in ipairs(es) do
-        local t, d = calcClosest(x,y, e[1], e[2])
-        if d < d_best then
-            t_best, d_best, e_best = t, d, e
-        end
+    -- second call is a horrible hack to avoid sign-inversion in update (cause unknown)
+    -- does this mean that this findClosest is using inverted values??
+    t_best, d_best = misc.findClosest(now, mx, my, fx, fy)
+    
+    best = e_close
+    if t_best and ((not best) or (d_best < best[3]^2)) then
+        assert(d_best, "t_best and not d_best")
+        best = {e, t_best, d_best^0.5}
     end
-    if e_best then
-        d_best = d_best^0.5
-        e_close = {e_best, t_best, d_best}
-    end
+    return best
 end
 
 function love.load()
     starttime = getTime()
-    time_elapsed = 0
+    now = 0
     winx, winy = lg.getDimensions()
     love.math.setRandomSeed(getTime())
     es = {newElement(), newElement()}
@@ -101,7 +91,9 @@ function love.load()
 end
 
 function love.keypressed(key)
-    if key == 'escape' then love.event.push('quit') end
+    if key == 'escape' then 
+        love.event.push('quit')
+    end
    
     if key == ' ' or key == 'space' then -- backwards-compatibility
         es = {newElement(), newElement()}
@@ -119,12 +111,10 @@ function love.mousemoved(x, y, dx, dy)
         local wx,wy = camera:getWorldPoint(lm.getPosition())
         camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT)
         camera:matchPointsScreenWorld(lm.getX(), lm.getY(), wx, wy)
---    else -- idle
---        populateClosestEntity(x, y)
     end
     if mouseState == 'manip' 
     or mouseState == 'manip-drag' 
-    and entity_being_manipulated then
+    and e_manip then
         -- manipulate entity
     end
 end
@@ -141,14 +131,7 @@ function love.mousepressed(x, y, button)
             mouseState = 'zoom'
         else
             mouseState = 'manip'
-            --local e, t, d = e_close[1], e_close[2], e_close[3]
-            --if d * camera:getScale() <= MAX_PIXELS_TO_INTERACT
-            if isCloseHot()
-            then
-                local e, t = e_close[1], e_close[2]
-                e:setTInt(t)
-                e_manip = {e, t}
-            end
+            if isCloseHot() then initManip() end
         end
     end
 end
@@ -164,17 +147,11 @@ function love.mousereleased(x, y, button)
         if mouseState == 'manip' then
             mouseState = 'idle'
             -- make element change course
-            if e_manip then
-                e_manip[1]:setTInt(nil)
-                e_manip = nil
-            end
+            if e_manip then demanip() end
         elseif mouseState == 'manip-drag' then
             mouseState = 'drag'
             -- make element change course
-            if e_manip then
-                e_manip[1]:setTInt(nil)
-                e_manip = nil
-            end
+            if e_manip then demanip() end
         elseif mouseState == 'zoom' then
             mouseState = 'drag'
         end
@@ -191,22 +168,64 @@ if version[2] > 9 then
     end
 end
 
+local function updateManipRef()
+    manip_ref = nil
+    if isCloseHot() then
+        local t = e_close[2]
+        local x, y = e_close[1]:getPosition(t) -- t < now ==> nil, nil
+        manip_ref = {x, y, t}
+    end
+end
+
+local upcount = 0
+local lastfx1, lastfy1
 function love.update(dt)
-    populateClosestEntity(lm.getPosition())
-    time_elapsed = getTime() - starttime
+    local mx, my, ex, ey
+    now = getTime() - starttime
+    --upcount = upcount + 1
+    --if upcount > 20 then love.event.push('quit') end
+--        print(upcount, now)
+    
+    e_close = nil
+    mx, my = camera:getWorldPoint(lm:getPosition())
+    mx, my = track.new(now, mx, my)
     
     for i=1, #es do
         local t_manip = es[i]:getTInt()
-        if t_manip and t_manip < time_elapsed then
-            es[i]:setTInt(nil)
-            e_manip = nil
+--        if t_manip then assert(es[i].id == e_manip.id) end
+        if t_manip and t_manip < now then demanip('abort') end
+        
+        e_close = updateClosestEntity(mx, my, es[i])
+        ex, ey = es[i]:getPosition(now)
+--            print(ex, ey)
+        if ex < 0 or winx < ex 
+        or ey < 0 or winy < ey 
+        then
+        --    es[i] = newElement()
+        --else es[i][1]:clearBefore(now)
+        --     es[i][2]:clearBefore(now)
         end
-        local ex, ey = es[i]:getPosition(time_elapsed)
-        if 0 > ex or ex > winx or 0 > ey or ey > winy then
-            es[i] = newElement()
-        else es[i][1]:clearBefore(time_elapsed)
-             es[i][2]:clearBefore(time_elapsed)
+        if i == 1 then lastfx1, lastfy1 = es[1][1]:clone(), es[1][2]:clone() end
+    end
+    updateManipRef()
+--        print()
+end
+
+local function drawTrack(fx, fy, rgb) --TODO: curved segments
+    local x, y, x1, y1, t
+    lg.setColor(rgb)
+    x,  y = camera:getScreenPoint(fx(now), fy(now))
+    x1, y1 = camera:getScreenPoint(fx(now+1000), fy(now+1000))
+    lg.line(x,y, x1, y1)
+    t = math.ceil(now)
+    for count = 1, 1000 do
+        x, y = camera:getScreenPoint(fx(t), fy(t))
+        if  x >= 0 and x <= winx 
+        and y >= 0 and y <= winy 
+        then
+            lg.circle('line', x, y, 3, 8)
         end
+        t = t + 1
     end
 end
 
@@ -225,51 +244,39 @@ function love.draw()
     
     --draw each element and its track
     for _,e in ipairs(es) do
-         x,  y = camera:getScreenPoint(e:getPosition(time_elapsed))
-        dx, dy = camera:getScreenPoint(e:getPosition(time_elapsed+1000))
-        lg.setColor(e[3])
-        lg.line(x, y, dx, dy)
+        drawTrack(e[1], e[2], e[3])
         if e:getTInt() then
-            lg.setColor(255-e[3][1], 255-e[3][2], 255-e[3][3])
-            lg.circle('fill', x, y, 6, 8)
-            lg.setColor(e[3])
-        else
-            lg.circle('fill', x, y, 6, 8)
+            lg.setColor(0xff, 0xff, 0xff)
         end
-        
-        -- draw 'reference points' along track at equal time intervals
-        -- TODO: scale predicted nodes interval about 'camera zoom'
-        local t = math.ceil(time_elapsed)
-        for count = 1, 1000 do
-            x,y = e:getPosition(t)
-            x,y = camera:getScreenPoint(x,y)
-            if  x >= 0 and x <= winx 
-            and y >= 0 and y <= winy 
-            then
-                lg.circle('line', x, y, 3, 8)
-            end
-            t = t + 1
-        end
+        local x, y = camera:getScreenPoint(e:getPosition(now))
+        lg.circle('fill', x, y, 6, 8)
     end
     
     lg.setColor(0xff, 0xff, 0xff)
     --if e_manip then
-    --    lg.print("manipulating object: "..e_manip[1].id)
+    --    lg.print("manipulating object: "..e_manip.id)
     --end
 
     -- draw path highlight of point closest to cursor
     -- and highlight the element itself
     if isCloseHot() then
-        local special_e, special_t = e_close[1], e_close[2]
-        x, y = special_e:getPosition(special_t)
+        assert(manip_ref)
+        x, y = manip_ref[1], manip_ref[2]
         if x and y then
-            x, y = camera:getScreenPoint(x, y)
+            x, y = camera:getScreenPoint(x, y) -- dot on track
             lg.circle('fill', x, y, 3, 8)
         end
-        x, y = camera:getScreenPoint(special_e:getPosition(time_elapsed))
-        lg.circle('line', x, y, 10, 12)
+        x, y = camera:getScreenPoint(e_close[1]:getPosition(now))
+        lg.circle('line', x, y, 10, 12) -- circle around entity
     end
-    --x, y = lm.getPosition()
-    --lg.circle('fill', x, y, 3, 8)
+    
+    --if e_close ~= nil then
+    --    assert(e_close[1], 'close element does not exist')
+    --    assert(e_close[2], 'clost time does not exist')
+    --    local x1, y1 = camera:getScreenPoint(e_close[1]:getPosition(e_close[2]))
+    --    local x2, y2 = lm.getPosition()
+    --    lg.setColor(0xff, 0xff, 0xff)
+    --    lg.line(x1, y1, x2, y2)
+    --end
 end
 
