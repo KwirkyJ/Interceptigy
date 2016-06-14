@@ -26,31 +26,34 @@ local version = {love.getVersion()}
 local lmb, rmb = 1, 2
 if version[2] == 9 then lmb, rmb = 'l', 'r' end
 
-local e_manip -- element-entity
-local e_close -- {element, t, distance}
+--local e_manip -- element-entity
+--local e_close -- {element, t, distance}
+local closest_e
+local closest_t
+local closest_d
 local mouseState = "idle" --idle, drag, zoom, manip, manip-drag
-local manip_path -- {fx, fy}
-local manip_ref -- {x, y, t}
+--local manip_path -- {fx, fy}
+--local manip_ref -- {x, y, t}
 
 ---Flag manipulation of the closest element/entity, if applicable
 local function initManip()
-    local e, t = e_close[1], e_close[2]
-    e:setTInt(t)
-    e_manip = e
+--    local e, t = e_close[1], e_close[2]
+--    e:setTInt(t)
+--    e_manip = e
 end
 
 ---Conclude element/entity manipulation
 local function demanip(abort)
-    if not e_manip then return end
-    e_manip:setTInt(nil)
-    --if not abort then
-    --end
-    e_manip = nil
+--    if not e_manip then return end
+--    e_manip:setTInt(nil)
+--    --if not abort then
+--    --end
+--    e_manip = nil
 end
 
 ---Whether or not e_closest is 'within hot range'
 local function isCloseHot()
-    return (e_close ~= nil) and (e_close[3]*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
+    return (closest_e ~= nil) and (closest_d*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
 end
 
 local function newElement(colortable) 
@@ -63,20 +66,26 @@ local function newElement(colortable)
 end
 
 local function updateClosestEntity(mx, my, e)
-    local fx, fy, t_best, d_best, best
+    local fx, fy, t, d --, best
     fx, fy = e[1], e[2]
     _ = misc.findClosest(now, mx, my, fx, fy)
     
     -- second call is a horrible hack to avoid sign-inversion in update (cause unknown)
     -- does this mean that this findClosest is using inverted values??
-    t_best, d_best = misc.findClosest(now, mx, my, fx, fy)
+    t, d = misc.findClosest(now, mx, my, fx, fy)
     
-    best = e_close
-    if t_best and ((not best) or (d_best < best[3]^2)) then
-        assert(d_best, "t_best and not d_best")
-        best = {e, t_best, d_best^0.5}
+    --best = e_close
+    if t then
+        if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
+    else
+        local ex, ey = e:getPosition(now)
+        local dx, dy = math.abs(mx(now) - ex), math.abs(my(now) - ey)
+        local d = (dx^2 + dy^2)^0.5
+        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT then
+            if (not closest_d) or (d < closest_d) then return e, now, d end
+        end
     end
-    return best
+    return closest_e, closest_t, closest_d
 end
 
 function love.load()
@@ -112,11 +121,11 @@ function love.mousemoved(x, y, dx, dy)
         camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT)
         camera:matchPointsScreenWorld(lm.getX(), lm.getY(), wx, wy)
     end
-    if mouseState == 'manip' 
-    or mouseState == 'manip-drag' 
-    and e_manip then
-        -- manipulate entity
-    end
+    --if mouseState == 'manip' 
+    --or mouseState == 'manip-drag' 
+    --and e_manip then
+    --    -- manipulate entity
+    --end
 end
 
 function love.mousepressed(x, y, button)
@@ -147,11 +156,11 @@ function love.mousereleased(x, y, button)
         if mouseState == 'manip' then
             mouseState = 'idle'
             -- make element change course
-            if e_manip then demanip() end
+            --if e_manip then demanip() end
         elseif mouseState == 'manip-drag' then
             mouseState = 'drag'
             -- make element change course
-            if e_manip then demanip() end
+            --if e_manip then demanip() end
         elseif mouseState == 'zoom' then
             mouseState = 'drag'
         end
@@ -161,32 +170,31 @@ end
 if version[2] > 9 then
     function love.wheelmoved(x, y)
         if y ~= 0 then
-            local x,y = camera:getWorldPoint(lm.getPosition())
+            local wx,wy = camera:getWorldPoint(lm.getPosition())
             camera:setZoom(camera:getZoom() + y / WHEEL_ZOOM_CONSTANT)
-            camera:matchPointsScreenWorld(lm.getX(), lm.getY(), x, y)
+            camera:matchPointsScreenWorld(lm.getX(), lm.getY(), wx, wy)
         end
     end
 end
 
 local function updateManipRef()
     manip_ref = nil
-    if isCloseHot() then
-        local t = e_close[2]
-        local x, y = e_close[1]:getPosition(t) -- t < now ==> nil, nil
-        manip_ref = {x, y, t}
-    end
+--    if isCloseHot() then
+--        local x, y = closest_e:getPosition(closest_t) -- t < now ==> nil, nil
+--        manip_ref = {x, y, closest_t}
+--    end
 end
 
-local upcount = 0
+local update_count = 0
 local lastfx1, lastfy1
 function love.update(dt)
     local mx, my, ex, ey
     now = getTime() - starttime
-    --upcount = upcount + 1
-    --if upcount > 20 then love.event.push('quit') end
---        print(upcount, now)
+    --update_count = update_count + 1
+    --if update_count > 20 then love.event.push('quit') end
+--        print(update_count, now)
     
-    e_close = nil
+    closest_e, closest_t, closest_d = nil, nil, nil
     mx, my = camera:getWorldPoint(lm:getPosition())
     mx, my = track.new(now, mx, my)
     
@@ -195,7 +203,7 @@ function love.update(dt)
 --        if t_manip then assert(es[i].id == e_manip.id) end
         if t_manip and t_manip < now then demanip('abort') end
         
-        e_close = updateClosestEntity(mx, my, es[i])
+        closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
         ex, ey = es[i]:getPosition(now)
 --            print(ex, ey)
         if ex < 0 or winx < ex 
@@ -248,8 +256,8 @@ function love.draw()
         if e:getTInt() then
             lg.setColor(0xff, 0xff, 0xff)
         end
-        local x, y = camera:getScreenPoint(e:getPosition(now))
-        lg.circle('fill', x, y, 6, 8)
+        local sx, sy = camera:getScreenPoint(e:getPosition(now))
+        lg.circle('fill', sx, sy, 6, 8)
     end
     
     lg.setColor(0xff, 0xff, 0xff)
@@ -260,13 +268,10 @@ function love.draw()
     -- draw path highlight of point closest to cursor
     -- and highlight the element itself
     if isCloseHot() then
-        assert(manip_ref)
-        x, y = manip_ref[1], manip_ref[2]
-        if x and y then
-            x, y = camera:getScreenPoint(x, y) -- dot on track
-            lg.circle('fill', x, y, 3, 8)
-        end
-        x, y = camera:getScreenPoint(e_close[1]:getPosition(now))
+        local t = math.max(now, closest_t)
+        x, y = camera:getScreenPoint(closest_e:getPosition(t))
+        lg.circle('fill', x, y, 3, 8) -- dot on track
+        x, y = camera:getScreenPoint(closest_e:getPosition(now))
         lg.circle('line', x, y, 10, 12) -- circle around entity
     end
     
