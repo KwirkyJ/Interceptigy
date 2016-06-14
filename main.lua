@@ -66,7 +66,7 @@ local function newElement(colortable)
 end
 
 local function updateClosestEntity(mx, my, e)
-    local fx, fy, t, d --, best
+    local fx, fy, t, d
     fx, fy = e[1], e[2]
     _ = misc.findClosest(now, mx, my, fx, fy)
     
@@ -74,7 +74,6 @@ local function updateClosestEntity(mx, my, e)
     -- does this mean that this findClosest is using inverted values??
     t, d = misc.findClosest(now, mx, my, fx, fy)
     
-    --best = e_close
     if t then
         if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
     else
@@ -274,14 +273,5 @@ function love.draw()
         x, y = camera:getScreenPoint(closest_e:getPosition(now))
         lg.circle('line', x, y, 10, 12) -- circle around entity
     end
-    
-    --if e_close ~= nil then
-    --    assert(e_close[1], 'close element does not exist')
-    --    assert(e_close[2], 'clost time does not exist')
-    --    local x1, y1 = camera:getScreenPoint(e_close[1]:getPosition(e_close[2]))
-    --    local x2, y2 = lm.getPosition()
-    --    lg.setColor(0xff, 0xff, 0xff)
-    --    lg.line(x1, y1, x2, y2)
-    --end
 end
 
