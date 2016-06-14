@@ -196,12 +196,18 @@ function love.update(dt)
     closest_e, closest_t, closest_d = nil, nil, nil
     mx, my = camera:getWorldPoint(lm:getPosition())
     mx, my = track.new(now, mx, my)
+
+    if lastfx1 then -- check against line 71
+    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
+    end
+
+    lastfx1, lastfy1 = es[1][1]:clone(), es[1][2]:clone()
     
     for i=1, #es do
         local t_manip = es[i]:getTInt()
 --        if t_manip then assert(es[i].id == e_manip.id) end
         if t_manip and t_manip < now then demanip('abort') end
-        
+
         closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
         ex, ey = es[i]:getPosition(now)
 --            print(ex, ey)
@@ -212,9 +218,10 @@ function love.update(dt)
         --else es[i][1]:clearBefore(now)
         --     es[i][2]:clearBefore(now)
         end
-        if i == 1 then lastfx1, lastfy1 = es[1][1]:clone(), es[1][2]:clone() end
     end
+    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
     updateManipRef()
+    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
 --        print()
 end
 
