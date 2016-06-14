@@ -7,7 +7,7 @@
 
 
 
-local tables = require 'moretables'
+local tables = require 'lib.moretables'
 
 local a, e -- actual, expected
 

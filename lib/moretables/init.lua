@@ -8,7 +8,7 @@
 
 
 
-local Buffer = require 'lua_stringbuffer'
+local Buffer = require 'lib.lua_stringbuffer'
 
 
 
