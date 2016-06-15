@@ -1,6 +1,7 @@
 ---Module for piecewise polynomial functions.
 
-local moretables = require 'lib.moretables.init'
+local moretables   = require 'lib.moretables'
+local stringbuffer = require 'lib.lua_stringbuffer'
 
 local unpack = unpack or table.unpack
 
@@ -194,6 +195,30 @@ piecewise.areEqual = function(p1, p2)
     return true
 end
 
+---Routine to pretty-print
+piecewise.print = function(P)
+    local buffer = stringbuffer.new()
+    buffer:add('Polynomial:\n')
+    for _, piece in ipairs(P) do
+        local empty = true
+        buffer:add('(' .. tostring(piece[1]) .. ') : ')
+        for i, v in ipairs(piece[2]) do
+            local sign = ' + '
+            if v < 0 then sign = ' - ' end
+            if empty then sign = '' end
+            if empty and v < 0 then sign = '-' end
+            local power = #piece[2] - i
+            v = math.abs(v)
+            buffer:add(sign .. tostring(v))
+            if power > 0 then buffer:add('*t') end
+            if power > 1 then buffer:add('^'..tostring(power)) end
+            empty = false
+        end
+        buffer:add('\n')
+    end
+    return buffer:getString()
+end
+
 ---Return a table interlacing the start times of the two 'functions' 
 -- with piece indices for each interval 
 piecewise.interlace = function(p1, p2)
@@ -375,6 +400,7 @@ piecewise.Polynomial = function(...)
                }
     local mt = {__call = piecewise.evaluate,
                 __eq   = piecewise.areEqual,
+                __tostring = piecewise.print,
                }
     setmetatable(pp, mt)
     for i,t in ipairs({...}) do
