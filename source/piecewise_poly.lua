@@ -311,9 +311,16 @@ local function arithmetic(p1, p2, sub)
     for _, batch in ipairs(starts) do
         local t, i1, i2 = batch[1], batch[2], batch[3]
         if not i1 then
-            local coeffs = p2[i2][2]
-            if sub then 
-                for i=1, #coeffs do coeffs[i] = -coeffs[i] end
+-- THIS COMMENTED BLOCK RESULTED IN OVERWRITES THAT TESTS MISSED...
+--TODO: determine gap that allowed for these to slip through undetected
+--            local coeffs = p2[i2][2]
+--            if sub then 
+--                for i=1, #coeffs do coeffs[i] = -coeffs[i] end
+--            end
+            local coeffs = {}
+            for i,v in ipairs(p2[i2][2]) do
+                if sub then v = -v end
+                coeffs[i] = v
             end
             s:insert(t, coeffs)
         elseif not i2 then

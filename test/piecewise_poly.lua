@@ -251,6 +251,8 @@ TestOperations.setUp = function(self)
     self.p2:insert(4,             6)
 end
 TestOperations.test_subtract = function(self)
+    local p1string = piecewise.print(self.p1)
+    local p2string = tostring(self.p2)
     local ident = self.p1:clone()
     local expected = piecewise.Polynomial()
     expected:insert(0, {    2, 0.5, 0})
@@ -258,9 +260,27 @@ TestOperations.test_subtract = function(self)
     expected:insert(3, { 2, 3, 0.5,-0.5})
     expected:insert(4, {-3, 0, 3,  -4})
     assertEquals(piecewise.subtract(self.p1, self.p2), expected)
+    
+    assertEquals(self.p1, ident, 'original is unmodified')
+    assertEquals(tostring(self.p1), p1string)
+    assertEquals(piecewise.print(self.p2), p2string)
+end
+TestOperations.test_subtract_selfcall = function(self)
+    local p1string = piecewise.print(self.p1)
+    local p2string = tostring(self.p2)
+    local ident = self.p1:clone()
+    local expected = piecewise.Polynomial()
+    expected:insert(0, {    2, 0.5, 0})
+    expected:insert(1, {    1, 0.5, 4.2})
+    expected:insert(3, { 2, 3, 0.5,-0.5})
+    expected:insert(4, {-3, 0, 3,  -4})
     assertEquals(self.p1:subtract(self.p2), expected)
     
     assertEquals(self.p1, ident, 'original is unmodified')
+    assertEquals(tostring(self.p1), p1string)
+    assertEquals(tostring(self.p1), 
+                 'Polynomial:\n(0) : 2*t^2 + 0.5*t + 0\n(4) : -3*t^3 + 0*t^2 + 3*t + 2\n')
+    assertEquals(piecewise.print(self.p2), p2string)
 end
 --TODO: TestOperations.test_subtract_errors = function(self) end
 TestOperations.test_add = function(self)

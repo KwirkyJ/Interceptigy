@@ -3,7 +3,6 @@
 
 local entity    = require 'source.entity'
 local misc      = require 'source.misclib'
-local piecewise = require 'source.piecewise_poly'
 local track     = require 'source.trackfactory'
 local viewport  = require 'source.viewport'
 
@@ -12,7 +11,7 @@ local WHEEL_ZOOM_CONSTANT = 10
 local MAX_PIXELS_TO_INTERACT = 20
 
 local lg      = love.graphics
-local lk      = love.keyboard
+--local lk      = love.keyboard
 local lm      = love.mouse
 local random  = love.math.random
 local getTime = love.timer.getTime
@@ -53,7 +52,7 @@ end
 
 ---Whether or not e_closest is 'within hot range'
 local function isCloseHot()
-    return (closest_e ~= nil) and (closest_d*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
+    return closest_e and (closest_d*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
 end
 
 local function newElement(colortable) 
@@ -63,28 +62,6 @@ local function newElement(colortable)
     if py > winy/2 then vy = -vy end
     colortable = colortable or {random(0xff), random(0xff), random(0xff)}
     return entity.new(now, px, py, vx, vy, colortable)
-end
-
-local function updateClosestEntity(mx, my, e)
-    local fx, fy, t, d
-    fx, fy = e[1], e[2]
-    _ = misc.findClosest(now, mx, my, fx, fy)
-    
-    -- second call is a horrible hack to avoid sign-inversion in update (cause unknown)
-    -- does this mean that this findClosest is using inverted values??
-    t, d = misc.findClosest(now, mx, my, fx, fy)
-    
-    if t then
-        if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
-    else
-        local ex, ey = e:getPosition(now)
-        local dx, dy = math.abs(mx(now) - ex), math.abs(my(now) - ey)
-        local d = (dx^2 + dy^2)^0.5
-        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT then
-            if (not closest_d) or (d < closest_d) then return e, now, d end
-        end
-    end
-    return closest_e, closest_t, closest_d
 end
 
 function love.load()
@@ -176,8 +153,30 @@ if version[2] > 9 then
     end
 end
 
+local function updateClosestEntity(mx, my, e)
+    local fx, fy, t, d
+    fx, fy = e[1], e[2]
+    --_ = misc.findClosest(now, mx, my, fx, fy)
+    -- second call is a horrible hack to avoid sign-inversion in update (cause unknown)
+    -- does this mean that this findClosest is using inverted values??
+    t, d = misc.findClosest(now, mx, my, fx, fy)
+    
+    if t then
+        if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
+    else
+        local ex, ey, dx, dy
+        ex, ey = e:getPosition(now)
+        dx, dy = math.abs(mx(now) - ex), math.abs(my(now) - ey)
+        d = (dx^2 + dy^2)^0.5
+        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT then
+            if (not closest_d) or (d < closest_d) then return e, now, d end
+        end
+    end
+    return closest_e, closest_t, closest_d
+end
+
 local function updateManipRef()
-    manip_ref = nil
+--    manip_ref = nil
 --    if isCloseHot() then
 --        local x, y = closest_e:getPosition(closest_t) -- t < now ==> nil, nil
 --        manip_ref = {x, y, closest_t}
@@ -185,44 +184,33 @@ local function updateManipRef()
 end
 
 local update_count = 0
-local lastfx1, lastfy1
 function love.update(dt)
     local mx, my, ex, ey
     now = getTime() - starttime
-    --update_count = update_count + 1
-    --if update_count > 20 then love.event.push('quit') end
---        print(update_count, now)
+    update_count = update_count + 1
+--    if update_count > 3 then love.event.push('quit') end
+--        print(now)
+--        print(updatecount, now)
     
     closest_e, closest_t, closest_d = nil, nil, nil
     mx, my = camera:getWorldPoint(lm:getPosition())
     mx, my = track.new(now, mx, my)
-
-    if lastfx1 then -- check against line 71
-    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
-    end
-
-    lastfx1, lastfy1 = es[1][1]:clone(), es[1][2]:clone()
     
     for i=1, #es do
         local t_manip = es[i]:getTInt()
 --        if t_manip then assert(es[i].id == e_manip.id) end
         if t_manip and t_manip < now then demanip('abort') end
 
-        closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
         ex, ey = es[i]:getPosition(now)
---            print(ex, ey)
-        if ex < 0 or winx < ex 
-        or ey < 0 or winy < ey 
-        then
-        --    es[i] = newElement()
-        --else es[i][1]:clearBefore(now)
-        --     es[i][2]:clearBefore(now)
-        end
+--        if ex < 0 or winx < ex 
+--        or ey < 0 or winy < ey 
+--        then
+--        --    es[i] = newElement()
+--        --else es[i][1]:clearBefore(now)
+--        --     es[i][2]:clearBefore(now)
+--        end
+        closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
     end
-    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
-    updateManipRef()
-    assert(lastfx1(now) == es[1][1](now) and lastfy1(now) == es[1][2](now))
---        print()
 end
 
 local function drawTrack(fx, fy, rgb) --TODO: curved segments
