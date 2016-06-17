@@ -10,8 +10,9 @@ local MOUSEDRAG_ZOOM_CONSTANT = 50
 local WHEEL_ZOOM_CONSTANT = 10
 local MAX_PIXELS_TO_INTERACT = 20
 
+local NUMBER_OF_ENTITIES = 5
+
 local lg      = love.graphics
---local lk      = love.keyboard
 local lm      = love.mouse
 local random  = love.math.random
 local getTime = love.timer.getTime
@@ -25,8 +26,8 @@ local version = {love.getVersion()}
 local lmb, rmb = 1, 2
 if version[2] == 9 then lmb, rmb = 'l', 'r' end
 
---local e_manip -- element-entity
---local e_close -- {element, t, distance}
+local update_count = 0
+
 local closest_e
 local closest_t
 local closest_d
@@ -69,7 +70,10 @@ function love.load()
     now = 0
     winx, winy = lg.getDimensions()
     love.math.setRandomSeed(getTime())
-    es = {newElement(), newElement()}
+    es = {}
+    for i=1, NUMBER_OF_ENTITIES do
+        es[i] = newElement()
+    end
     camera = viewport.new(winx, winy)
     camera:setPanRate(100)
     camera:setZoomRate(2)
@@ -81,7 +85,9 @@ function love.keypressed(key)
     end
    
     if key == ' ' or key == 'space' then -- backwards-compatibility
-        es = {newElement(), newElement()}
+        for i=1, NUMBER_OF_ENTITIES do
+            es[i] = newElement()
+        end
         camera:setScale(1)
         camera:setPosition(0, 0)
     end
@@ -156,9 +162,6 @@ end
 local function updateClosestEntity(mx, my, e)
     local fx, fy, t, d
     fx, fy = e[1], e[2]
-    --_ = misc.findClosest(now, mx, my, fx, fy)
-    -- second call is a horrible hack to avoid sign-inversion in update (cause unknown)
-    -- does this mean that this findClosest is using inverted values??
     t, d = misc.findClosest(now, mx, my, fx, fy)
     
     if t then
@@ -183,12 +186,10 @@ local function updateManipRef()
 --    end
 end
 
-local update_count = 0
 function love.update(dt)
     local mx, my, ex, ey
     now = getTime() - starttime
     update_count = update_count + 1
---    if update_count > 3 then love.event.push('quit') end
 --        print(now)
 --        print(updatecount, now)
     
@@ -221,13 +222,14 @@ local function drawTrack(fx, fy, rgb) --TODO: curved segments
     lg.line(x,y, x1, y1)
     t = math.ceil(now)
     for count = 1, 1000 do
+        -- draw reference points
         x, y = camera:getScreenPoint(fx(t), fy(t))
         if  x >= 0 and x <= winx 
         and y >= 0 and y <= winy 
         then
             lg.circle('line', x, y, 3, 8)
         end
-        t = t + 1
+        t = t+1
     end
 end
 
