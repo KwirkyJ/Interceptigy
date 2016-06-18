@@ -217,6 +217,7 @@ end
 local function drawTrack(fx, fy, rgb) --TODO: curved segments
     local x, y, x1, y1, t
     lg.setColor(rgb)
+    -- fx:getDegree() -?-> {2, 1} OR {1} OR (very rarely) {0}
     x,  y = camera:getScreenPoint(fx(now), fy(now))
     x1, y1 = camera:getScreenPoint(fx(now+1000), fy(now+1000))
     lg.line(x,y, x1, y1)
@@ -231,6 +232,18 @@ local function drawTrack(fx, fy, rgb) --TODO: curved segments
         end
         t = t+1
     end
+end
+
+---signify important element, 
+-- drop interaction node on track, 
+-- and draw 'intercepts'
+local function highlightCloseTrack()
+    local t = math.max(now, closest_t)
+    x, y = camera:getScreenPoint(closest_e:getPosition(t))
+    lg.circle('fill', x, y, 3, 8) -- dot on track
+    x, y = camera:getScreenPoint(closest_e:getPosition(now))
+    lg.circle('line', x, y, 10, 12) -- circle around entity
+    --TODO: intercept markers
 end
 
 function love.draw()
@@ -261,14 +274,6 @@ function love.draw()
     --    lg.print("manipulating object: "..e_manip.id)
     --end
 
-    -- draw path highlight of point closest to cursor
-    -- and highlight the element itself
-    if isCloseHot() then
-        local t = math.max(now, closest_t)
-        x, y = camera:getScreenPoint(closest_e:getPosition(t))
-        lg.circle('fill', x, y, 3, 8) -- dot on track
-        x, y = camera:getScreenPoint(closest_e:getPosition(now))
-        lg.circle('line', x, y, 10, 12) -- circle around entity
-    end
+    if isCloseHot() then highlightCloseTrack() end
 end
 
