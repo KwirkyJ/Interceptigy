@@ -388,6 +388,23 @@ piecewise.square = function(P)
     return piecewise.multiply(P, P)
 end
 
+piecewise.getDegree = function(P, t)
+    if t then
+        local d
+        for _,piece in ipairs(P) do
+            if t >= piece[1] then d = #piece[2] - 1
+            else break end
+        end
+        return d
+    else
+        degrees = {}
+        for i, piece in ipairs(P) do
+            degrees[i] = #piece[2] - 1
+        end
+        return degrees
+    end
+end
+
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function(...)
     local pp = {add           = piecewise.add,
@@ -395,6 +412,7 @@ piecewise.Polynomial = function(...)
                 clone         = piecewise.clone,
                 divide        = piecewise.divide,
                 evaluate      = piecewise.evaluate,
+                getDegree     = piecewise.getDegree,
                 getDerivative = piecewise.getDerivative,
                 getGrowth     = piecewise.getGrowth,
                 getRoots      = piecewise.getRoots,

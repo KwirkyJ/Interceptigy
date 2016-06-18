@@ -485,6 +485,22 @@ TestDerive.test_getGrowth_several = function(self)
 end
 
 
+TestDegree = {}
+TestDegree.test_empty = function(self)
+    local p = piecewise.Polynomial()
+    assertEquals(nil, p:getDegree(123), 'no piece at given time results in nil')
+    assertEquals({}, p:getDegree(), 'no arguments results in all degrees (none)')
+end
+TestDegree.test_pieces = function(self)
+    local p = piecewise.Polynomial({-3, 5}, {4, 5,-1.2,6,9}, {9, -4,-2})
+    assertEquals(p:getDegree(-4), nil, 'no degree at undefined time index')
+    assertEquals(p:getDegree(0), 0, 'constants have degree zero')
+    assertEquals(p:getDegree(9), 1, 'linear is degree one')
+    assertEquals(p:getDegree(7.2), 3, 'cubic piece here')
+    assertEquals({0, 3, 1}, p:getDegree())
+end
+
+
 
 luaunit:run()
 
