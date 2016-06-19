@@ -1,3 +1,4 @@
+local piecewise    = require 'source.piecewise_poly'
 local trackfactory = require 'source.trackfactory'
 local luaunit      = require 'luaunit.luaunit'
 
@@ -6,24 +7,25 @@ local luaunit      = require 'luaunit.luaunit'
 TestNew = {}
 TestNew.setUp = function(self)
 end
-TestNew.test_static = function(self)
-    local t, x, y = 30, 88, 66
-    local fx, fy = trackfactory.new(t, x, y)
-    assertEquals({fx(t), fy(t)}, {x, y})
-    t = 333
-    assertEquals({fx(t), fy(t)}, {x, y})
+TestNew.test_constant = function(self)
+    local f = trackfactory.new(30, 88)
+    assertEquals(f, piecewise.Polynomial({30, 88}))
+    assertEquals(f(30),  88)
+    assertEquals(f(333), 88)
 end
 TestNew.test_linear = function(self)
-    local t, px, py, vx, vy = 163, 20.5, -3, 1.2, 0.4
-    local fx, fy = trackfactory.new(t, px, py, vx, vy)
-    assertEquals({fx(t), fy(t)}, {20.5, -3})
-    t = 184 -- dt = 21
-    assertAlmostEquals(20.5+(1.2*21), 45.7, 1e-12)
-    
-    assertAlmostEquals(fx(t), 20.5+(1.2*21), 1e-12)
-    assertAlmostEquals(fy(t), -3  +(0.4*21), 1e-12)
-    assertAlmostEquals(fx(t), 1.2*t -175.1, 1e-12)
-    assertAlmostEquals(fy(t), 0.4*t - 68.2, 1e-12)
+    local f = trackfactory.new(163, 20.5, -2.3)
+    local expect = piecewise.Polynomial({163, -2.3, 20.5 + 2.3*163})
+    assertEquals(f, expect)
+end
+
+TestParametric = {}
+TestParametric.test_correctness = function(self)
+    local expect_x = trackfactory.new(4, 5,   1, 2)
+    local expect_y = trackfactory.new(4,-0.3, 6, 3)
+    local actual_x, actual_y = trackfactory.newParametric(4, 5, -0.3, 1, 6, 2, 3)
+    assertEquals({actual_x, actual_y}, 
+                 {expect_x, expect_y})
 end
 
 
