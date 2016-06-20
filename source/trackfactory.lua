@@ -34,8 +34,18 @@ end
 
 
 
---track.tangent = function()
---end
+---Create a piecewise polynomial track tangent to the given
+-- @param t time to use for tangent (number)
+-- @param P Polynomial instance
+-- @error   iff P(t)==nil, P
+-- @return Piecewise Polynomial instance
+track.tangent = function(t, P)
+    assert(type(t) == 'number', 't must be a number')
+    assert(type(P) == 'table' and #P > 0 and P.getStarts, 'P must be a valid Polynomial')
+    local p = P(t)
+    assert(p, 'P(t) cannot be nil')
+    return track.new(t, p, P:getGrowth(t))
+end
 
 
 
