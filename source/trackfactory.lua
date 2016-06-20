@@ -4,7 +4,6 @@ local track = {}
 
 
 
-
 ---Create a new track (fx, fy) starting at the given time
 -- @param t  starttime of track
 -- @param px x-position of track at starttime
@@ -28,14 +27,12 @@ end
 track.new = function(t, p, v, a)
     v = v or 0
     a = a or 0
-    p = p - t*v
+    a = a/2
+    p = p - v*t - a*t^2
     return piecewise.Polynomial({t, a, v, p})
 end
 
 
-
---track.append = function()
---end
 
 --track.tangent = function()
 --end

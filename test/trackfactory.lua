@@ -15,7 +15,12 @@ TestNew.test_constant = function(self)
 end
 TestNew.test_linear = function(self)
     local f = trackfactory.new(163, 20.5, -2.3)
-    local expect = piecewise.Polynomial({163, -2.3, 20.5 + 2.3*163})
+    local expect = piecewise.Polynomial({163, -2.3, 20.5 - (-2.3*163)})
+    assertEquals(f, expect)
+end
+TestNew.test_quadratic = function(self)
+    local f = trackfactory.new(-5.5, 18, -4.2, 4)
+    local expect = piecewise.Polynomial({-5.5, 4/2, -4.2, 18 - (-4.2)*(-5.5) - (4/2)*(-5.5)^2})
     assertEquals(f, expect)
 end
 
