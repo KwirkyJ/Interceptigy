@@ -206,8 +206,8 @@ end
 
 ---Stand-in for '=='
 piecewise.areEqual = function(p1, p2)
-    if not p1.getStarts
-    or not p2.getStarts
+    if not p1._isPolynomial
+    or not p2._isPolynomial
     or not moretables.alike(p1, p2)
     then 
         return false
@@ -272,18 +272,6 @@ piecewise.interlace = function(p1, p2)
             t[#t+1] = {p2[i2][1], nil, i2}
         elseif start < p2[1][1] then -- before first piece in p2
             t[#t+1] = {p1[i1][1], i1, nil}
---[[
-        if start < p1[1][1] then -- before first piece in p1
-            t[#t+1] = {p2[i2][1], nil, i2}
-        elseif start < p2[1][1] then -- before first piece in p2
-            t[#t+1] = {p1[i1][1], i1, nil}
-        elseif done1 then
-            start = s2
-            t[#t+1] = {start, i1, i2}
-        elseif done2 then
-            start = s1
-            t[#t+1] = {start, i1, i2}
---]]
         else
             if s1 > start then
                 t[#t+1] = {start, i1-1, i2}
