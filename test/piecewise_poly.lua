@@ -94,6 +94,68 @@ end
 
 
 
+TestInsertPolynomial = {}
+TestInsertPolynomial.test_empty_to_empty = function(self)
+    local p1 = piecewise.Polynomial()
+    local p2 = piecewise.Polynomial()
+    assertError(p1.insertPoly, p1, p2)
+end
+TestInsertPolynomial.test_empty_to_poly = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 2})
+    local p2 = piecewise.Polynomial()
+    assertError(p1.insertPoly, p1, p2)
+end
+TestInsertPolynomial.test_poly_to_empty = function(self)
+    local p1 = piecewise.Polynomial()
+    local p2 = piecewise.Polynomial({3, -1.2, 4})
+    local out = p1:insertPoly(p2)
+    assertEquals(out, p2)
+    assertEquals(piecewise.insertPoly(p1, p2), p2,
+                 'module call also supported')
+end
+TestInsertPolynomial.test_starttime_clash = function(self)
+    local p1 = piecewise.Polynomial({4, 1, 3})
+    local p2 = piecewise.Polynomial({4, 0.2, -1})
+    assertError(p1.insertPoly, p1, p2)
+end
+TestInsertPolynomial.test_piece_clash = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 1}, {4, 1, 2, 3})
+    local p2 = piecewise.Polynomial({4, -6})
+    assertError(p1.insertPoly, p1, p2)
+end
+TestInsertPolynomial.test_insert_multipiece = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 1}, {4, 1, 2, 3})
+    local p2 = piecewise.Polynomial({1, 2, 3}, {5, 6,-2})
+    assertError(p1.insertPoly, p1, p2)
+end
+TestInsertPolynomial.test_insert_after = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 1}, {4, 1, 2, 3})
+    local p2 = piecewise.Polynomial({8, -6})
+    local out = p1:insertPoly(p2)
+    assertEquals(out, piecewise.Polynomial({0, 3, 1}, {4, 1, 2, 3}, {8, -6}))
+end
+TestInsertPolynomial.test_insert_before = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 1}, {4, 1, 2, 3})
+    local p2 = piecewise.Polynomial({-3.2, -6})
+    local out = p1:insertPoly(p2)
+    assertEquals(out, piecewise.Polynomial({-3.2, -6}, {0, 3, 1}, {4, 1, 2, 3}))
+end
+TestInsertPolynomial.test_insert_between = function(self)
+    local p1 = piecewise.Polynomial({0, 3, 1}, {4, 1, -4}, {9, 0})
+    local p2 = piecewise.Polynomial({7, -6})
+    local out = p1:insertPoly(p2)
+    assertEquals(out, piecewise.Polynomial({0, 3, 1}, {4, 1, -4}, {7, -6}, {9, 0}))
+end
+TestInsertPolynomial.test_non_polynomial_errors = function(self)
+    local empty = piecewise.Polynomial()
+    local popul = piecewise.Polynomial({5,2,1})
+    assertError(piecewise.insertPoly, empty, nil)
+    assertError(piecewise.insertPoly, nil, popul)
+    assertError(piecewise.insertPoly, popul, {8, {1, 2}})
+    assertError(piecewise.insertPoly, popul, function() return true end)
+end
+
+
 TestGetStarts = {}
 TestGetStarts.setUp = function(self)
     self.p = piecewise.Polynomial()

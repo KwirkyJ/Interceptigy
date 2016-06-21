@@ -45,6 +45,26 @@ piecewise.insert = function(P, t1, ...)
     end
 end
 
+---Insert a polynomial within the given polynomial (if possible)
+-- starttime clashes are not allowed, and the inserted polynomial must
+-- have only one piece.
+-- @param p1 Polynomial instance to be inserted into
+-- @param p2 Inserted Polynomial instance
+-- @return New Polynomial instance
+piecewise.insertPoly = function(p1, p2)
+    assert(type(p1) == 'table' and p1._isPolynomial)
+    assert(type(p2) == 'table' and p2._isPolynomial and #p2 == 1)
+    local p_out = piecewise.Polynomial()
+    for _, piece1 in ipairs(p1) do
+        for _, piece2 in ipairs(p2) do
+            assert(piece1[1] ~= piece2[1])
+        end
+        p_out:insert(piece1[1], piece1[2])
+    end
+    p_out:insert(p2[1][1], p2[1][2])
+    return p_out
+end
+
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
 piecewise.clearBefore = function(P, t)
     for _=1, #P do
@@ -407,7 +427,8 @@ end
 
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function(...)
-    local pp = {add           = piecewise.add,
+    local pp = {_isPolynomial = true,
+                add           = piecewise.add,
                 clearBefore   = piecewise.clearBefore,
                 clone         = piecewise.clone,
                 divide        = piecewise.divide,
@@ -418,6 +439,7 @@ piecewise.Polynomial = function(...)
                 getRoots      = piecewise.getRoots,
                 getStarts     = piecewise.getStarts,
                 insert        = piecewise.insert,
+                insertPoly    = piecewise.insertPoly,
                 interlace     = piecewise.interlace,
                 multiply      = piecewise.multiply,
                 subtract      = piecewise.subtract,
