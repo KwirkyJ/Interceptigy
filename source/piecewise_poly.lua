@@ -1,7 +1,7 @@
 ---Module for piecewise polynomial functions.
 
-local moretables   = require 'lib.moretables'
-local stringbuffer = require 'lib.lua_stringbuffer'
+local moretables   = require 'lib.moretables.init'
+local stringbuffer = require 'lib.lua_stringbuffer.init'
 
 local unpack = unpack or table.unpack
 
