@@ -195,7 +195,7 @@ function love.update(dt)
     
     closest_e, closest_t, closest_d = nil, nil, nil
     mx, my = camera:getWorldPoint(lm:getPosition())
-    mx, my = track.new(now, mx, my)
+    mx, my = track.newParametric(now, mx, my)
     
     for i=1, #es do
         local t_manip = es[i]:getTInt()
@@ -246,6 +246,37 @@ local function highlightCloseTrack()
     --TODO: intercept markers
 end
 
+local function drawInterceptPair(t, fx, fy, fc, tx, ty, tc, highlight)
+    --TODO: scale circle size with 'weapons range'?
+    local x, y
+    lg.setColor(tc)
+    x,y = camera:getScreenPoint(tx(t), ty(t))
+    lg.circle('fill', x, y, 4, 8)
+    lg.circle('line', x, y, 12, 16)
+    lg.setColor(fc)
+    x,y = camera:getScreenPoint(fx(t), fy(t))
+    lg.circle('fill', x, y, 4, 8)
+    lg.circle('line', x, y, 12, 16)
+end
+
+local function drawIntercepts(entity)
+    local fx, fy = entity:getRealTrack(now)
+    for _,target in ipairs(es) do
+      if entity ~= target then 
+        --TODO: projected track of 'other's', real tracks of 'own'
+        --local tx, ty = target:getProjectedTrack(now)
+        local tx, ty = target:getProjectedTrack(now, 'tangent')
+        local t = misc.findClosest(now, fx, fy, tx, ty)
+        if t and t ~= now then
+            --TODO: highlight if mouse is close to one of these
+            local highlight = false
+            drawInterceptPair(t, fx, fy, entity:getColor(),
+                                 tx, ty, target:getColor(), highlight)
+        end
+      end
+    end
+end
+
 function love.draw()
     lg.setBackgroundColor(0, 0, 0)
     local x, y, dx, dy
@@ -274,6 +305,9 @@ function love.draw()
     --    lg.print("manipulating object: "..e_manip.id)
     --end
 
-    if isCloseHot() then highlightCloseTrack() end
+    if isCloseHot() then 
+        highlightCloseTrack() 
+        drawIntercepts(closest_e)
+    end
 end
 
