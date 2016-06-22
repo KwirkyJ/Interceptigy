@@ -1,6 +1,8 @@
 local piecewise    = require 'source.piecewise_poly'
 local trackfactory = require 'source.trackfactory'
 
+local unpack = unpack or table.unpack
+
 local idstore = 0
 
 local entity = {}
@@ -88,6 +90,19 @@ entity.getProjectedTrack = function(E, t, q)
     assert(E:getPosition(t), 'entity has no position at given time')
     q = q or 'tangent'
     assert(type(q) == 'string', 'qualifier must be a string or nil')
+    if q ~= 'tangent' then
+        local starts = E[1]:getStarts()
+        for i=1, #starts do
+            if not starts[i+1] or t < starts[i+1] then
+                --TODO: Refactor! heavily violates polynomial data encapsulation!
+                return piecewise.Polynomial({t, unpack(E[1][i][2])}),
+                       piecewise.Polynomial({t, unpack(E[2][i][2])})
+            end
+        end
+        error("you have a bad problem") -- reached if #starts == 0; other?
+    else
+        return trackfactory.tangent(t, E[1]), trackfactory.tangent(t, E[2])
+    end
 end
 
 ---create a new Entity instance
@@ -117,12 +132,13 @@ entity.new = function(now, px, py, vx, vy, color)
             [3] = color,
             t_interact = nil,
             id = idstore,
-            getColor     = entity.getColor,
-            getPosition  = entity.getPosition,
-            getRealTrack = entity.getRealTrack,
-            getTInt      = entity.getTInt,
-            setTInt      = entity.setTInt,
-            setTrack     = entity.setTrack,
+            getColor          = entity.getColor,
+            getPosition       = entity.getPosition,
+            getProjectedTrack = entity.getProjectedTrack,
+            getRealTrack      = entity.getRealTrack,
+            getTInt           = entity.getTInt,
+            setTInt           = entity.setTInt,
+            setTrack          = entity.setTrack,
            }
 end
 

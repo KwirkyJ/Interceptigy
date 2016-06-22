@@ -1,8 +1,10 @@
 local luaunit      = require 'luaunit.luaunit'
-
 local entity       = require 'source.entity'
+
 local piecewise    = require 'source.piecewise_poly'
 local trackfactory = require 'source.trackfactory'
+
+local unpack = unpack or table.unpack
 
 
 
@@ -129,8 +131,54 @@ end
 TestManipTracks.test_getRealTrack_time_error = function(self)
     assertError(self.e.getRealTrack, self.e, 15) -- 15 < 20
 end
---TestManipTracks.test_getProjectedTrack_simple = function(self) end
---TestManipTracks.test_getProjectedTrack_multipiece = function(self) end
+TestManipTracks.test_getProjectedTrack_simple = function(self)
+    local exp_x, exp_y = trackfactory.newParametric(55, 122, 54.5, 3, -0.3)
+    local act_x, act_y = self.e:getProjectedTrack(55)
+    assertEquals({act_x, act_y}, {exp_x, exp_y})
+end
+TestManipTracks.test_getProjectedTrack_curve_tangent = function(self)
+    self.e:setTrack(self.curve_a, self.curve_b)
+    local t = 35
+    local x,y = self.e:getPosition(t)
+    local vx = self.curve_a:getGrowth(t)
+    local vy = self.curve_b:getGrowth(t)
+    local exp_x, exp_y = trackfactory.newParametric(t, x, y, vx, vy)
+    local act_x, act_y = self.e:getProjectedTrack(t)
+    assertEquals({act_x, act_y}, {exp_x, exp_y})
+end
+TestManipTracks.test_getProjectedTrack_curve_extrapolate = function(self)
+    local a, b = self.curve_a, self.curve_b
+    self.e:setTrack(a, b)
+    local t = 45
+    local x, y = self.e:getPosition(t)
+    assertAlmostEquals(y, math.cos(1)/2*45^2 - 0.3*45 -- test sanity-check
+                          + (65 + 0.3*20 - math.cos(1)/2*20^2), 1e-12)
+    assertNumber(a[1][2][3], 'constant component of curve_a polynomial')
+    assertNil(a[1][2][4], 'polynomial is guaranteed cubic')
+    local exp_x = piecewise.Polynomial({t, unpack(a[1][2])}) --TODO: back out of violating data encapsulation
+    local exp_y = piecewise.Polynomial({t, unpack(b[1][2])})
+    local act_x, act_y = self.e:getProjectedTrack(t, 'extrapolate')
+    assertEquals({act_x, act_y}, {exp_x, exp_y})
+end
+TestManipTracks.test_getProjectedTrack_multipiece = function(self)
+    local exp_x, exp_y
+    local fx_app = trackfactory.tangent(42, self.curve_a)
+    local fy_app = trackfactory.tangent(42, self.curve_b)
+    local curve_aa = piecewise.insertPoly(self.curve_a, fx_app)
+    local curve_bb = piecewise.insertPoly(self.curve_b, fy_app)
+    self.e:setTrack(curve_aa, curve_bb)
+    exp_x = trackfactory.tangent(33, self.curve_a)
+    exp_y = trackfactory.tangent(33, self.curve_b)
+    assertEquals({self.e:getProjectedTrack(33)}, {exp_x, exp_y})
+    
+    exp_x = piecewise.Polynomial({34, unpack(self.curve_a[1][2])})
+    exp_y = piecewise.Polynomial({34, unpack(self.curve_b[1][2])})
+    assertEquals({self.e:getProjectedTrack(34, 'extrapolate')}, {exp_x, exp_y})
+    
+    exp_x = piecewise.Polynomial({134, unpack(fx_app[1][2])})
+    exp_y = piecewise.Polynomial({134, unpack(fy_app[1][2])})
+    assertEquals({self.e:getProjectedTrack(134, 'extrapolate')}, {exp_x, exp_y})
+end
 
 
 
