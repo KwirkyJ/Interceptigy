@@ -42,9 +42,9 @@ end
 -- @param fx Piecewise Polynomial instance
 -- @param fy Piecewise Polynomial instance
 entity.setTrack = function(E, fx, fy)
-    assert(E._isEntity)
-    assert(fx._isPolynomial)
-    assert(fy._isPolynomial)
+--    assert(E._isEntity)
+--    assert(fx._isPolynomial)
+--    assert(fy._isPolynomial)
     E[1], E[2] = fx, fy
 end
 
@@ -52,19 +52,45 @@ end
 -- starting at first piece spanning given time
 -- @param E Entity instance
 -- @param t time
+-- @error t less than Entity's first position time
 -- @return fx, fy (Piecewise Polynomial instances)
 entity.getRealTrack = function(E, t)
     local starts, x, y = E[1]:getStarts()
-    assert(t >= starts[1], 'entity has no position at given time')
-    x,y = E[1]:clone(), E[2]:clone()
-    while x[2] and t > x[2][1] do
-        table.remove(x, 1)
-        table.remove(y, 1)
+    assert(E:getPosition(t), 'entity has no position at given time')
+--    x,y = E[1]:clone(), E[2]:clone()
+--    while x[2] and t > x[2][1] do
+--        table.remove(x, 1)
+--        table.remove(y, 1)
+--    end
+    -- below optimizes at cost of readability...
+    x,y = piecewise.Polynomial(), piecewise.Polynomial()
+    for i=1, #starts do
+        if not starts[i+1] 
+        or t <= starts[i+1] then --TODO: accessors violate data encapsulation
+            x:insert(E[1][i][1], E[1][i][2])
+            y:insert(E[2][i][1], E[2][i][2])
+        end
     end
     return x, y
 end
 
----create a new entity object
+---get the polynomials for the entity's estimated position
+-- @param E Entity instance
+-- @param t time
+-- @param q quality of projection; String 'tangent' or 'extrapolate'
+--          (default 'tangent')
+-- @error type(t) not 'number'
+-- @error t less than Entity's first position time
+-- @error type(q) not 'string' nor 'nil'
+-- @return tx, ty (Piecewise Polynomial instances)
+entity.getProjectedTrack = function(E, t, q)
+    assert(type(t) == 'number', 'given time must be number')
+    assert(E:getPosition(t), 'entity has no position at given time')
+    q = q or 'tangent'
+    assert(type(q) == 'string', 'qualifier must be a string or nil')
+end
+
+---create a new Entity instance
 -- entity.new(now, px, py, vx, vy, color)
 -- entity.new(now, random) -- creates a random entity
 -- @param now    current time (as interpreted by program)
