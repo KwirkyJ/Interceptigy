@@ -8,35 +8,35 @@ local idstore = 0
 local entity = {}
 
 ---get the position of an entity at time t
--- @param e Entity instance
+-- @param E Entity instance
 -- @param t time (number)
 -- @return x, y (numbers)
-entity.getPosition = function(e, t)
+entity.getPosition = function(E, t)
     if type(t) ~= 'number' then
         error('time index must be a number')
     end
-    return e[1](t), e[2](t)
+    return E[1](t), E[2](t)
 end
 
 ---get the time of interaction for entity's track, if any
--- @param e Entity instance
+-- @param E Entity instance
 -- @return number or nil
-entity.getTInt = function(e)
-    return e.t_interact
+entity.getTInt = function(E)
+    return E.t_interact
 end
 
 ---set/reset interaction time for the entity
--- @param e Entity instance
+-- @param E Entity instance
 -- @param t time (number)
-entity.setTInt = function(e, t)
-    e.t_interact = t
+entity.setTInt = function(E, t)
+    E.t_interact = t
 end
 
 ---get a copy of the entity's color table
--- @param e Entity instance
+-- @param E Entity instance
 -- @return table {number, number, number}
-entity.getColor = function(e)
-    return {e[3][1], e[3][2], e[3][3]}
+entity.getColor = function(E)
+    return {E[3][1], E[3][2], E[3][3]}
 end
 
 ---set the polynomials for the x and y position through time
