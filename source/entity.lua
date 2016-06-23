@@ -59,18 +59,12 @@ end
 entity.getRealTrack = function(E, t)
     local starts, x, y = E[1]:getStarts()
     assert(E:getPosition(t), 'entity has no position at given time')
---    x,y = E[1]:clone(), E[2]:clone()
---    while x[2] and t > x[2][1] do
---        table.remove(x, 1)
---        table.remove(y, 1)
---    end
-    -- below optimizes at cost of readability...
     x,y = piecewise.Polynomial(), piecewise.Polynomial()
-    for i=1, #starts do
-        if not starts[i+1] 
-        or t <= starts[i+1] then --TODO: accessors violate data encapsulation
-            x:insert(E[1][i][1], E[1][i][2])
-            y:insert(E[2][i][1], E[2][i][2])
+    for i, s1 in ipairs(starts) do
+        local s2 = starts[i+1]
+        if not s2 or t <= s2 then
+            x:insert(E[1]:getPiece(s1))
+            y:insert(E[2]:getPiece(s1))
         end
     end
     return x, y
@@ -91,17 +85,15 @@ entity.getProjectedTrack = function(E, t, q)
     q = q or 'tangent'
     assert(type(q) == 'string', 'qualifier must be a string or nil')
     if q ~= 'tangent' then
-        local starts = E[1]:getStarts()
-        for i=1, #starts do
-            if not starts[i+1] or t < starts[i+1] then
-                --TODO: Refactor! heavily violates polynomial data encapsulation!
-                return piecewise.Polynomial({t, unpack(E[1][i][2])}),
-                       piecewise.Polynomial({t, unpack(E[2][i][2])})
-            end
+        if E[1](t) then
+            return piecewise.Polynomial({t, E[1]:getCoefficients(t)}),
+                   piecewise.Polynomial({t, E[2]:getCoefficients(t)})
+        else
+            error("you have a bad problem")
         end
-        error("you have a bad problem") -- reached if #starts == 0; other?
     else
-        return trackfactory.tangent(t, E[1]), trackfactory.tangent(t, E[2])
+        return trackfactory.tangent(t, E[1]), 
+               trackfactory.tangent(t, E[2])
     end
 end
 
