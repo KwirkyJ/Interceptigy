@@ -413,6 +413,32 @@ piecewise.getDegree = function(P, t)
     end
 end
 
+---get the starttime and coefficients (in order) of a piece at time t
+-- @param P Polynomial
+-- @param t time (number)
+-- @return nil iff P undefined at t; else t and coeffiecients
+piecewise.getPiece = function(P, t)
+    for i=1, #P do
+        if t >= P[i][1] and (not P[i+1] or t < P[i+1][1]) then
+            return P[i][1], unpack(P[i][2])
+        end
+    end
+    return
+end
+
+---get the coefficients of a piece at time t
+-- @param P Polynomial
+-- @param t time (number)
+-- @return nil or coefficients
+piecewise.getCoefficients = function(P, t)
+    local seq = {P:getPiece(t)}
+    if #seq > 0 then
+        table.remove(seq, 1)
+        return unpack(seq)
+    end
+    return
+end
+
 ---Create a new piecewise polynomial 'object'.
 piecewise.Polynomial = function(...)
     local pp = {_isPolynomial = true,
@@ -423,7 +449,9 @@ piecewise.Polynomial = function(...)
                 evaluate      = piecewise.evaluate,
                 getDegree     = piecewise.getDegree,
                 getDerivative = piecewise.getDerivative,
+                getCoefficients = piecewise.getCoefficients,
                 getGrowth     = piecewise.getGrowth,
+                getPiece      = piecewise.getPiece,
                 getRoots      = piecewise.getRoots,
                 getStarts     = piecewise.getStarts,
                 insert        = piecewise.insert,

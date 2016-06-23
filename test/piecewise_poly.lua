@@ -564,5 +564,48 @@ end
 
 
 
+TestGetPiece = {}
+TestGetPiece.test_empty = function(self)
+    assertNil(piecewise.Polynomial():getPiece(5))
+end
+TestGetPiece.test_undefined = function(self)
+    assertNil(piecewise.Polynomial({5, 3, 2}):getPiece(1))
+end
+TestGetPiece.test_zero = function(self)
+    assertEquals({piecewise.Polynomial({4, 0}):getPiece(20)}, {4, 0})
+end
+TestGetPiece.test_select = function(self)
+    local p = piecewise.Polynomial()
+    p:insert(0, 2, 4)
+    p:insert(4, 5)
+    p:insert(9, 1, 3)
+    assertEquals({p:getPiece(4)}, {4, 5})
+    assertEquals({p:getPiece(11)}, {9, 1, 3})
+    assertEquals({piecewise.getPiece(p, 100)}, {9,1,3}) -- module call
+end
+
+
+
+TestGetCoefficients = {}
+TestGetCoefficients.test_empty = function(self)
+    assertNil(piecewise.Polynomial():getCoefficients(5))
+end
+TestGetCoefficients.test_undefined = function(self)
+    assertNil(piecewise.Polynomial({5, 3, 2}):getCoefficients(1))
+end
+TestGetCoefficients.test_zero = function(self)
+    assertEquals({piecewise.Polynomial({4, 0}):getCoefficients(20)}, {0})
+end
+TestGetCoefficients.test_select = function(self)
+    local p = piecewise.Polynomial()
+    p:insert(0, 2, 4)
+    p:insert(4, 5)
+    p:insert(9, 1, 3)
+    assertEquals({p:getCoefficients(4)}, {5})
+    assertEquals({p:getCoefficients(11)}, {1, 3})
+    assertEquals({piecewise.getCoefficients(p, 100)}, {1, 3}) -- module call
+end
+
+
 luaunit:run()
 
