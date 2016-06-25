@@ -5,6 +5,11 @@ local stringbuffer = require 'lib.lua_stringbuffer.init'
 
 local unpack = unpack or table.unpack
 
+
+
+local function startOf(piece)  return piece[1] end
+local function coeffsOf(piece) return piece[2] end
+
 local piecewise = {}
 
 ---add a new piece to the polynomial (in-place modification)
@@ -97,38 +102,42 @@ end
 -- @return {number, ...}
 piecewise.getStarts = function(P)
     local t = {}
-    for i=1, #P do
-        t[i] = P[i][1]
+    for i, piece in ipairs(P) do
+        t[i] = startOf(piece)
     end
     return t
 end
 
----Find value of the polynomial at a given 'time'.
+---Find value of the polynomial at a given 'time'
+-- @param P Polynomial instance
+-- @param t time (number)
+-- @return nil iff time is before first polynomial piece; else number
 piecewise.evaluate = function(P, t)
-    if not P[1] or t < P[1][1] then return nil end
-    local v, coeffs = 0
-    for i=#P, 1, -1 do
-        if t >= P[i][1] then 
-            coeffs = P[i][2]
-            break
+    if not P[1] or t < startOf(P[1]) then return nil end
+    local v, _, coeffs = 0, piecewise.getPiece(P, t)
+    if coeffs then
+        for i=1, #coeffs do
+            v = v * t + coeffs[i] 
         end
-    end
-    for i=1, #coeffs do
-        v = v * t + coeffs[i] 
     end
     return v
 end
 
 ---Find the 'time(s)' at which the polynomial has the given value;
 -- supports only polynomials of degree two or less.
+-- @param P Polynomial instance
+-- @param v value (default 0)
+-- @return (table)
 piecewise.getRoots = function(P, v)
     v = v or 0
     assert(type(v) == 'number', 'value must be number, was: '..type(v))
     if not P[1] then return {} end
     local roots, t_start, t_stop, t, coeffs = {}
-    for i=1, #P do
-        t_start, coeffs, t_stop = P[i][1], P[i][2], math.huge
-        if P[i+1] then t_stop = P[i+1][1] end
+    for i, piece in ipairs(P) do 
+    --i=1, #P do 
+    --    local piece = P[i]
+        local t_start, coeffs, t_stop = startOf(piece), coeffsOf(piece), math.huge
+        if P[i+1] then t_stop = startOf(P[i+1]) end
         --assert(type(t_start) == 'number')
         --assert(type(t_stop)  == 'number')
         --assert(type(coeffs)  == 'table')
@@ -167,6 +176,9 @@ piecewise.getRoots = function(P, v)
     return roots
 end
 
+---Duplicate a Polynomial
+-- @param P Polynomial instance
+-- @return Polynomial instance
 piecewise.clone = function(P)
     local c = piecewise.Polynomial()
     for i=1, #P do
@@ -201,10 +213,10 @@ piecewise.getGrowth = function(P, t)
     local t0, t1
     for i=1, #P do
         local piece = P[i]
-        t0, t1 = piece[1], math.huge
-        if P[i+1] then t1 = P[i+1][1] end
+        t0, t1 = startOf(piece), math.huge
+        if P[i+1] then t1 = startOf(P[i+1]) end
         if t0 <= t and t <= t1 then 
-            return derivePiece(piece[2], t)
+            return derivePiece(coeffsOf(piece), t)
         end
     end
     return nil
@@ -215,7 +227,7 @@ end
 piecewise.getDerivative = function(P)
     local d = piecewise.Polynomial()
     for _, piece in ipairs(P) do
-        d:insert(piece[1], derivePiece(piece[2]))
+        d:insert(startOf(piece), derivePiece(coeffsOf(piece)))
     end
     return d
 end
@@ -237,13 +249,13 @@ piecewise.print = function(P)
     buffer:add('Polynomial:\n')
     for _, piece in ipairs(P) do
         local empty = true
-        buffer:add('(' .. tostring(piece[1]) .. ') : ')
-        for i, v in ipairs(piece[2]) do
+        buffer:add('(' .. tostring(startOf(piece)) .. ') : ')
+        for i, v in ipairs(coeffsOf(piece)) do
             local sign = ' + '
             if v < 0 then sign = ' - ' end
             if empty then sign = '' end
             if empty and v < 0 then sign = '-' end
-            local power = #piece[2] - i
+            local power = #coeffsOf(piece) - i
             v = math.abs(v)
             buffer:add(sign .. tostring(v))
             if power > 0 then buffer:add('*t') end
@@ -255,59 +267,65 @@ piecewise.print = function(P)
     return buffer:getString()
 end
 
----Return a table interlacing the start times of the two 'functions' 
--- with piece indices for each interval 
-piecewise.interlace = function(p1, p2)
-    local t = {}
-    local i1, i2 = 1, 1
-    local done1, done2 = i1 > #p1, i2 > #p2
-    
-    if done1 and not done2 then
-        for i=1, #p2 do
-            t[#t+1] = {p2[i][1], nil, i}
-        end
-        done2 = true
-    elseif done2 and not done1 then
-        for i=1, #p1 do
-            t[#t+1] = {p1[i][1], i}
-        end
-        done1 = true
+
+
+---variables for the interlace iterator closure
+local _a, _b, _ai, _bi
+
+---interlacing iterator closure
+-- NOT THREAD-SAFE
+local function _interlace_iter()
+    local c_ai, c_bi = _ai+1, _bi+1 -- candidate indices
+    local c_a, c_b = _a[c_ai], _b[c_bi] -- candidate pieces
+    if not c_a and not c_b then return nil end
+    if c_a then c_a = startOf(c_a) end -- pieces to values
+    if c_b then c_b = startOf(c_b) end
+
+    local t -- piece start time
+    if c_a == c_b then
+        t, _ai, _bi = c_a, c_ai, c_bi
+    elseif not c_a  then
+        t, _bi = c_b, c_bi
+    elseif not c_b then
+        t, _ai = c_a, c_ai
+    elseif c_a < c_b then
+        t, _ai = c_a, c_ai
+    else
+        t, _bi = c_b, c_bi
     end
-    if done1 and done2 then return t end
     
-    while not done1 or not done2 do
-        local s1, s2 = p1[i1][1], p2[i2][1]
-        local start = math.min(s1, s2)
-        if done1 then
-            start = s2
-            t[#t+1] = {start, i1, i2}
-        elseif done2 then
-            start = s1
-            t[#t+1] = {start, i1, i2}
-        elseif start < p1[1][1] then -- before first piece in p1
-            t[#t+1] = {p2[i2][1], nil, i2}
-        elseif start < p2[1][1] then -- before first piece in p2
-            t[#t+1] = {p1[i1][1], i1, nil}
-        else
-            if s1 > start then
-                t[#t+1] = {start, i1-1, i2}
-            elseif s2 > start then
-                t[#t+1] = {start, i1, i2-1}
-            else
-                t[#t+1] = {start, i1, i2}
-            end
-        end
-        if s1 == start then i1 = i1+1 end
-        if s2 == start then i2 = i2+1 end
-        
-        if i1 > #p1 then done1, i1 = true, #p1 end
-        if i2 > #p2 then done2, i2 = true, #p2 end
-        if done1 and done2 then break end
-    end
-    return t
+    return t, _ai, _bi
 end
 
-local function addcoeffs(c1, c2, sub)
+---iterator generator to interlace two Polynomials
+-- NOT THREAD-SAFE
+-- @param a Polynomial instance
+-- @param b Polynomial instance
+-- @return iterator function (a closure)
+local function _interlace(a, b)
+    _a, _b, _ai, _bi = a, b, 0, 0
+    return _interlace_iter
+end
+
+---Module wrapper for the interlacing closure generator
+-- for use with the generic for which outputs three values:
+-- starttime of the next piece,
+-- index of polynomial 'a' at starttime, and
+-- index of polynomial 'b' at starttime;
+-- indices can be zero;
+-- WARNING: due to the closure variables, this routine is NOT thread-safe
+-- @param a Polynomial instance
+-- @param b Polynomial instance
+-- @return interlace iterator function
+piecewise.interlace = _interlace
+
+
+---routine to perform arithmetic (addition or subtraction) on
+-- the supplied coefficient tables
+-- @param c1 table of numbers (first coefficients)
+-- @param c2 table of numbers (second coefficients)
+-- @param sub boolean flag to subtract instead of add
+local function arithCoeffs(c1, c2, sub)
     local subs, nxt, i1, i2 = {}, 1, 1, 1
     while #c1-i1 < #c2-i2 do -- unmatched higher-degree coeffs in f2
         if sub then 
@@ -330,27 +348,27 @@ local function addcoeffs(c1, c2, sub)
     return subs
 end
 
+---Perform addition or subtraction on Polynomials
+-- @param p1 Polynomial instance
+-- @param p2 Polynomial instance
+-- @param sub flag to perform subtraction (defalt false/nil)
+-- @return Polynomial instance
 local function arithmetic(p1, p2, sub)
-    local s, starts = piecewise.Polynomial(), p1:interlace(p2)
-    for _, batch in ipairs(starts) do
-        local t, i1, i2 = batch[1], batch[2], batch[3]
-        if not i1 then
--- THIS COMMENTED BLOCK RESULTED IN OVERWRITES THAT TESTS MISSED...
---TODO: determine gap that allowed for these to slip through undetected
---            local coeffs = p2[i2][2]
---            if sub then 
---                for i=1, #coeffs do coeffs[i] = -coeffs[i] end
---            end
-            local coeffs = {}
-            for i,v in ipairs(p2[i2][2]) do
+    local s = piecewise.Polynomial()
+    for t, i1, i2 in _interlace(p1, p2) do
+        local piece1, piece2, coeffs2 = p1[i1], p2[i2]
+        if not piece1 then
+            coeffs = {}
+            for i,v in ipairs(coeffsOf(piece2)) do
                 if sub then v = -v end
                 coeffs[i] = v
             end
             s:insert(t, coeffs)
-        elseif not i2 then
-            s:insert(t, p1[i1][2])
+        elseif not piece2 then
+            s:insert(t, coeffsOf(piece1))
         else
-            s:insert(t, addcoeffs(p1[i1][2], p2[i2][2], sub))
+            s:insert(t, arithCoeffs(coeffsOf(piece1), 
+                                    coeffsOf(piece2), sub))
         end
     end
     return s
@@ -371,6 +389,10 @@ piecewise.divide = function(p1, p2)
     error('polynomial division not yet supported')
 end
 
+---Multiply one set of coefficients by another
+-- @param coeffs1 {[number[, ...]]}
+-- @param coeffs2 {[number[, ...]]}
+-- @return {[number[, ...]]}
 local function mult(coeffs1, coeffs2)
     local product = {}
     local maxdegree = #coeffs1-1 + #coeffs2-1
@@ -391,55 +413,52 @@ local function mult(coeffs1, coeffs2)
     return product
 end
 
----Get the function resulting from multiplying two functions together
+---Get the Polynomial resulting from multiplying two Polynomials together
+-- @param p1 Polynomial instance
+-- @param p2 Polynomial instance
+-- @return Polynomial instance
 piecewise.multiply = function(p1, p2)
-    local product, starts = piecewise.Polynomial(), p1:interlace(p2)
-    for i=1, #starts do
-        local t, i1, i2 = starts[i][1], starts[i][2], starts[i][3]
-        if not i1 then
-            product:insert(t, p2[i2][2])
-        elseif not i2 then
-            product:insert(t, p1[i1][2])
+    local product = piecewise.Polynomial()
+    for t, i1, i2 in _interlace(p1, p2) do
+        if i1 == 0 then
+            product:insert(t, coeffsOf(p2[i2]))
+        elseif i2 == 0 then
+            product:insert(t, coeffsOf(p1[i1]))
         else
-            product:insert(t, mult(p1[i1][2], p2[i2][2]))
+            product:insert(t, mult(coeffsOf(p1[i1]), coeffsOf(p2[i2])))
         end
     end
     return product
 end
 
 ---Alias for multipy(P, P)
+-- @param P Polynomial instance
+-- @return Polynomial instance
 piecewise.square = function(P)
     return piecewise.multiply(P, P)
 end
 
+---Get the degree of a polynomial at the given time
+-- @param P Polynomial instance
+-- @param t time (number)
+-- @error t is nil
+-- @return nil iff P undefined at t; else number
 piecewise.getDegree = function(P, t)
-    if t then
-        local d
-        for _,piece in ipairs(P) do
-            if t >= piece[1] then d = #piece[2] - 1
-            else break end
-        end
-        return d
-    else
-        degrees = {}
-        for i, piece in ipairs(P) do
-            degrees[i] = #piece[2] - 1
-        end
-        return degrees
-    end
+    assert(type(t) == 'number')
+    local _, coeffs = P:getPiece(t)
+    if coeffs then return #coeffs-1 end
 end
 
 ---get the starttime and coefficients (in order) of a piece at time t
--- @param P Polynomial
+-- @param P Polynomial instance
 -- @param t time (number)
 -- @return nil iff P undefined at t; else t and coeffiecients
 piecewise.getPiece = function(P, t)
-    for i=1, #P do
-        if t >= P[i][1] and (not P[i+1] or t < P[i+1][1]) then
-            return P[i][1], unpack(P[i][2])
+    for i, piece in ipairs(P) do
+        if t >= startOf(piece) and (not P[i+1] or t < startOf(P[i+1])) then
+            return unpack(piece)
         end
     end
-    return
 end
 
 ---get the coefficients of a piece at time t
@@ -447,12 +466,8 @@ end
 -- @param t time (number)
 -- @return nil or coefficients
 piecewise.getCoefficients = function(P, t)
-    local seq = {P:getPiece(t)}
-    if #seq > 0 then
-        table.remove(seq, 1)
-        return unpack(seq)
-    end
-    return
+    local _, coeffs = P:getPiece(t)
+    if coeffs then return unpack(coeffs) end
 end
 
 ---Create a new piecewise polynomial 'object'
@@ -479,7 +494,6 @@ piecewise.Polynomial = function(...)
                 getStarts     = piecewise.getStarts,
                 insert        = piecewise.insert,
                 insertPoly    = piecewise.insertPoly,
-                interlace     = piecewise.interlace,
                 multiply      = piecewise.multiply,
                 subtract      = piecewise.subtract,
                 square        = piecewise.square,

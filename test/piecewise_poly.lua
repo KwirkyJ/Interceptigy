@@ -240,39 +240,48 @@ TestInterlace.setUp = function(self)
     self.p2:insert( 3, -2,-1, 0,   0.5)
     self.p2:insert( 4,             6)
 end
+TestInterlace.getActual = function(a, b)
+    local T = {}
+    for start, i1, i2 in piecewise.interlace(a,b) do
+        T[#T+1] = {start, i1, i2}
+    end
+    return T
+end
 TestInterlace.test_interlace = function(self)
-    local e12 = {{-1, 1, nil}, 
-                 { 0, 2, nil}, 
+    local e12 = {{-1, 1, 0}, 
+                 { 0, 2, 0}, 
                  { 1, 2, 1}, 
                  { 3, 2, 2}, 
                  { 4, 3, 3}, 
                  { 9, 4, 3}}
-    local e21 = {{-1, nil, 1}, 
-                 { 0, nil, 2}, 
-                 { 1,   1, 2}, 
-                 { 3,   2, 2}, 
-                 { 4,   3, 3}, 
-                 { 9,   3, 4}}
-    assertEquals(piecewise.interlace(self.p1, self.p2), e12)
-    assertEquals(piecewise.interlace(self.p2, self.p1), e21,
+    local e21 = {{-1, 0, 1}, 
+                 { 0, 0, 2}, 
+                 { 1, 1, 2}, 
+                 { 3, 2, 2}, 
+                 { 4, 3, 3}, 
+                 { 9, 3, 4}}
+    assertEquals(self.getActual(self.p1, self.p2), e12)
+    assertEquals(self.getActual(self.p2, self.p1), e21,
                  'order of arguments is important')
-    assertEquals(self.p1:interlace(self.p2), e12)
-    assertEquals(self.p2:interlace(self.p1), e21)
 end
 TestInterlace.test_empty = function(self)
     local p_empty = piecewise.Polynomial()
-    local e1 = {{1, 1, nil}, {3, 2, nil}, {4, 3, nil}}
-    local e2 = {{-1, nil, 1}, {0, nil, 2}, {4, nil, 3}, {9, nil, 4}}
-    assertEquals(self.p2:interlace(p_empty), e1)
-    assertEquals(p_empty:interlace(self.p1), e2)
-    assertEquals(p_empty:interlace(piecewise.Polynomial()), {},
+    local e1 = {{1, 1, 0}, {3, 2, 0}, {4, 3, 0}}
+    local e2 = {{-1, 0, 1}, {0, 0, 2}, {4, 0, 3}, {9, 0, 4}}
+    assertEquals(self.getActual(self.p2, p_empty), e1)
+    assertEquals(self.getActual(p_empty, self.p1), e2)
+    assertEquals(self.getActual(p_empty, piecewise.Polynomial()), {},
                  'interlacing two empty polynomials gives an empty table')
 end
 TestInterlace.test_odd_pieces = function(self)
     local pa = piecewise.Polynomial({3, 4,  130})
     local pb = piecewise.Polynomial({9,-1.5, 80})
-    local expected = {{3, 1, nil}, {9, 1, 1}}
-    assertEquals(pa:interlace(pb), expected)
+    local expected = {{3, 1, 0}, {9, 1, 1}}
+    assertEquals(self.getActual(pa, pb), expected)
+end
+TestInterlace.test_self = function(self)
+    local expected = {{-1, 1, 1}, {0, 2, 2}, {4, 3, 3}, {9, 4, 4}}
+    assertEquals(self.getActual(self.p1, self.p1), expected)
 end
 
 
@@ -555,15 +564,18 @@ TestDegree = {}
 TestDegree.test_empty = function(self)
     local p = piecewise.Polynomial()
     assertEquals(nil, p:getDegree(123), 'no piece at given time results in nil')
-    assertEquals({}, p:getDegree(), 'no arguments results in all degrees (none)')
 end
 TestDegree.test_pieces = function(self)
     local p = piecewise.Polynomial({-3, 5}, {4, 5,-1.2,6,9}, {9, -4,-2})
-    assertEquals(p:getDegree(-4), nil, 'no degree at undefined time index')
+    assertNil(p:getDegree(-4), 'no degree at t=-4')
     assertEquals(p:getDegree(0), 0, 'constants have degree zero')
     assertEquals(p:getDegree(9), 1, 'linear is degree one')
     assertEquals(p:getDegree(7.2), 3, 'cubic piece here')
-    assertEquals({0, 3, 1}, p:getDegree())
+end
+TestDegree.test_error = function(self)
+    local p = piecewise.Polynomial({-3, 5}, {4, 5,-1.2,6,9}, {9, -4,-2})
+    assertError(piecewise.getDegree, p, nil)
+    assertError(p.getDegree, p, nil)
 end
 
 
@@ -573,19 +585,19 @@ TestGetPiece.test_empty = function(self)
     assertNil(piecewise.Polynomial():getPiece(5))
 end
 TestGetPiece.test_undefined = function(self)
-    assertNil(piecewise.Polynomial({5, 3, 2}):getPiece(1))
+    assertNil(piecewise.Polynomial(5, 3, 2):getPiece(1))
 end
 TestGetPiece.test_zero = function(self)
-    assertEquals({piecewise.Polynomial({4, 0}):getPiece(20)}, {4, 0})
+    assertEquals({piecewise.Polynomial(4, 0):getPiece(20)}, {4, {0}})
 end
 TestGetPiece.test_select = function(self)
     local p = piecewise.Polynomial()
     p:insert(0, 2, 4)
     p:insert(4, 5)
     p:insert(9, 1, 3)
-    assertEquals({p:getPiece(4)}, {4, 5})
-    assertEquals({p:getPiece(11)}, {9, 1, 3})
-    assertEquals({piecewise.getPiece(p, 100)}, {9,1,3}) -- module call
+    assertEquals({p:getPiece(4)}, {4, {5}})
+    assertEquals({p:getPiece(11)}, {9, {1, 3}})
+    assertEquals({piecewise.getPiece(p, 100)}, {9,{1,3}}) -- module call
 end
 
 
@@ -595,16 +607,16 @@ TestGetCoefficients.test_empty = function(self)
     assertNil(piecewise.Polynomial():getCoefficients(5))
 end
 TestGetCoefficients.test_undefined = function(self)
-    assertNil(piecewise.Polynomial({5, 3, 2}):getCoefficients(1))
+    assertNil(piecewise.Polynomial(5, 3, 2):getCoefficients(1))
 end
 TestGetCoefficients.test_zero = function(self)
-    assertEquals({piecewise.Polynomial({4, 0}):getCoefficients(20)}, {0})
+    assertEquals({piecewise.Polynomial(4, 0):getCoefficients(20)}, {0})
 end
 TestGetCoefficients.test_select = function(self)
-    local p = piecewise.Polynomial()
-    p:insert(0, 2, 4)
-    p:insert(4, 5)
-    p:insert(9, 1, 3)
+    local p = piecewise.Polynomial({0, 2, 4}, {4, 5}, {9, 1, 3})
+--    p:insert(0, 2, 4)
+--    p:insert(4, 5)
+--    p:insert(9, 1, 3)
     assertEquals({p:getCoefficients(4)}, {5})
     assertEquals({p:getCoefficients(11)}, {1, 3})
     assertEquals({piecewise.getCoefficients(p, 100)}, {1, 3}) -- module call
