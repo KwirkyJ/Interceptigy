@@ -7,7 +7,17 @@ local unpack = unpack or table.unpack
 
 local piecewise = {}
 
----Add a new piece to the polynomial.
+---add a new piece to the polynomial (in-place modification)
+-- places piece such that piece starttimes are in order
+-- @param t1 starttime of a piece (number)
+-- @param p1 coefficient of highest degree (number)
+--           OR table of numbers representing coefficients 
+--           higher-to-lower degree
+-- @param p2 coefficient of second-highest degree (number or nil)
+-- @param ... further coefficients of decreasing degree
+-- @error t1 is not a number
+-- @error no coefficients provided
+-- @error coefficients are of inappropriate type
 piecewise.insert = function(P, t1, ...)
     local coeffs = {...}
     if type(coeffs[1]) == 'table' then coeffs = coeffs[1] end
@@ -50,7 +60,9 @@ end
 -- have only one piece.
 -- @param p1 Polynomial instance to be inserted into
 -- @param p2 Inserted Polynomial instance
--- @return New Polynomial instance
+-- @error either argument is not a Polynomial instance
+-- @error p2 (inserted Polynomial) is empty
+-- @return Polynomial instance
 piecewise.insertPoly = function(p1, p2)
     assert(type(p1) == 'table' and p1._isPolynomial)
     assert(type(p2) == 'table' and p2._isPolynomial and #p2 == 1)
@@ -66,6 +78,8 @@ piecewise.insertPoly = function(p1, p2)
 end
 
 ---Make the polynomial 'start' at the given time, clearing any earlier pieces.
+-- @param P Polynomial instance
+-- @param t time (number)
 piecewise.clearBefore = function(P, t)
     for _=1, #P do
         if not P[2] or P[2][1] > t then
@@ -79,6 +93,8 @@ end
 
 ---Get table of time indices for the individual pieces
 -- ordered by starting time (least to greatest).
+-- @param P Polynomial instance
+-- @return {number, ...}
 piecewise.getStarts = function(P)
     local t = {}
     for i=1, #P do
@@ -439,7 +455,14 @@ piecewise.getCoefficients = function(P, t)
     return
 end
 
----Create a new piecewise polynomial 'object'.
+---Create a new piecewise polynomial 'object'
+-- can be called with variable count of numbers
+-- (populates with a single piece, if possible must meet insert() criteria)
+-- or can be called with variable count of tables 
+-- (populates with as many pieces; contents must meet table-less insert() criteria)
+-- @param ... numbers or tables of numbers
+-- @error arguments do not satisfy insert() criteria
+-- @return Polynomial instance
 piecewise.Polynomial = function(...)
     local pp = {_isPolynomial = true,
                 add           = piecewise.add,
@@ -466,8 +489,12 @@ piecewise.Polynomial = function(...)
                 __tostring = piecewise.print,
                }
     setmetatable(pp, mt)
-    for i,t in ipairs({...}) do
-        assert(type(t) == 'table', 'supplied arguments must be tables')
+    local params = {...}
+    if type(params[1]) == 'number' then
+         pp:insert(...)
+         return pp
+    end
+    for i,t in ipairs(params) do
         assert(#t > 1, 'table must have at least two numbers (at '..i..')')
         local start = table.remove(t, 1)
         pp:insert(start, t)

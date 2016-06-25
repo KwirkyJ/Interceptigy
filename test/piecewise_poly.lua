@@ -21,15 +21,19 @@ TestPrepopulate.test_more_pieces = function(self)
     assertEquals(p:getStarts(), {-2, 3, 6})
 end
 TestPrepopulate.test_errors = function(self)
-    assertError('supplied arguments must be tables',
-                piecewise.Polynomial, 5, 1, 3)
     assertError('table must have at least two numbers (at 3)',
                 piecewise.Polynomial, {0,1,2}, {4,2,1}, {5}, {5,3})
+    assertError(piecewise.Polynomial, 4)
 end
 TestPrepopulate.test_zero = function(self)
     local p = piecewise.Polynomial({5, 0})
     assertNil(p(4))
     assertEquals(p(10), 0)
+end
+TestPrepopulate.test_non_table = function(self)
+    local p = piecewise.Polynomial(5, 3, 2)
+    assertNil(p(2))
+    assertEquals(p(7), 3*7+2)
 end
 
 TestInsertAndEvaluate = {}
