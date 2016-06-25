@@ -28,17 +28,17 @@ track.new = function(t, p, v, a)
     v = v or 0
     a = a or 0
     a = a/2
-    p = p - v*t - a*t^2
-    return piecewise.Polynomial({t, a, v, p})
+    return piecewise.Polynomial(t, a, v, (p - v*t - a*t^2) )
 end
 
 
 
----Create a piecewise polynomial track tangent to the given
+---Create a piecewise polynomial track tangential to the given at a certain time
 -- @param t time to use for tangent (number)
 -- @param P Polynomial instance
--- @error   iff P(t)==nil, P
--- @return Piecewise Polynomial instance
+-- @error iff type(t) ~= number
+-- @error iff Polynomial undefined at t
+-- @return Polynomial instance
 track.tangent = function(t, P)
     assert(type(t) == 'number', 't must be a number')
     assert(type(P) == 'table' and #P > 0 and P.getStarts, 'P must be a valid Polynomial')
