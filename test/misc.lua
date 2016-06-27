@@ -51,7 +51,7 @@ TestLoopMock.updateThings = function(self)
 end
 TestLoopMock.test_findClosest_sign_flip = function(self)
     local x, y = 0, 0
-    local mousefx, mousefy = track.new(0, 30, -20) -- mouse position through time
+    local mousefx, mousefy = track.newParametric(0, 30, -20) -- mouse position through time
     --entity.new(t, p0x, p0y, v0x, v0y, color)
     self.entities = {entity.new(5, 20, 5, 1,-1, {1,1,1}),
                      entity.new(5,  7,-5,-1,-1, {1,1,1})}

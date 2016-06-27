@@ -86,14 +86,14 @@ entity.getProjectedTrack = function(E, t, q)
     assert(type(q) == 'string', 'qualifier must be a string or nil')
     if q ~= 'tangent' then
         if E[1](t) then
-            return piecewise.Polynomial({t, E[1]:getCoefficients(t)}),
-                   piecewise.Polynomial({t, E[2]:getCoefficients(t)})
+            return piecewise.Polynomial(t, E[1]:getCoefficients(t)),
+                   piecewise.Polynomial(t, E[2]:getCoefficients(t))
         else
             error("you have a bad problem")
         end
     else
-        return trackfactory.tangent(t, E[1]), 
-               trackfactory.tangent(t, E[2])
+        return trackfactory.tangent(E[1], t), 
+               trackfactory.tangent(E[2], t)
     end
 end
 

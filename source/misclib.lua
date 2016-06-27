@@ -3,17 +3,22 @@ local piecewise = require 'source.piecewise_poly'
 local misclib = {}
 
 ---calculate the acceleration required to adjust a position/velocty to
--- by given distance in given time.
--- Uses the first kinematic equation.
+-- by given distance in given time; uses the first kinematic equation
 -- @param v0_x y-velocity at t0
 -- @param v0_y y-velocity at t0
 -- @param dx   change in x-position from given to target (at t1)
 -- @param dy   change in y-position from given to target (at t1)
 -- @param dt   time (in seconds) between t0 and t1
--- @return ax, ay; x and y acceleration components
-misclib.find_burnframe = function(v0_x, v0_y, dx, dy, dt)
+-- @return ax, ay, h (numbers: x- and y-acceleration components and 
+--         hypotenuse of their vectors)
+misclib.findRequiredAccel = function(v0_x, v0_y, dx, dy, dt) 
+    -- kinematic eqn:
+    -- d = v0*dt + 0.5*a*dt^2
+    -- a = (d - v0*dt) / (dt^2 / 2)
+    --   = (d-v0*dt)*(2/dt^2)
     local K = 2 / dt^2
-    return (dx - v0_x*dt)*K, (dy - v0_y*dt)*K
+    local ax, ay = (dx - v0_x*dt)*K, (dy - v0_y*dt)*K
+    return ax, ay, (ax^2 + ay^2)^0.5
 end
 
 
@@ -35,31 +40,20 @@ end
 --         by, cy, dy, ey (same for fny)
 misclib.find_burnpoint = function(t0, p0_x, p0_y, v0_x, v0_y, 
                                   ax, ay, t1, p1_x, p1_y)
---TODO: move to piecewise_poly; get acceleration curves &c.
     local ta, bx,cx,dx,ex, by,cy,dy,ey
     bx = v0_x - ax*t0
     cx = p0_x - 1/2*ax*t0^2 - bx*t0
     
+    -- 'candidate' times for acceleration-end
     local ta_a = (ax*t1 + ((-ax*t1)^2 - 2*ax*(p1_x-bx*t1-cx))^0.5) / ax
     local ta_b = (ax*t1 - ((-ax*t1)^2 - 2*ax*(p1_x-bx*t1-cx))^0.5) / ax
     
---    local var_d = math.huge -- 'mismatch' between derivatives
-    -- ta,dx,ex = nil, nil, nil
     for _,t in ipairs({ta_a, ta_b}) do -- t <=> ta
         if t > t0 and t < t1 then
             ta = t
-            d = ax*ta + bx
-            e = p1_x - d*t1
---            local d_f, d_d -- f2(ta)-f1(ta), f'2(ta)-f'2(ta)
---            d_f = (d*ta + e) - (1/2*ax*ta^2 + bx*ta + cx)
---            d_d = d - (ax*ta + bx)
---            --print(string.format("ta==%f : df == %f, dd == %f", 
---                                  ta, d_f, d_d))
---            --assert(d_f < 1e-10)
---            if d_d < var_d then 
-                var_d = d_d
-                ta,dx,ex = t,d,e
---            end
+            local d = ax*ta + bx
+            local e = p1_x - d*t1
+            ta,dx,ex = t,d,e
         end
         assert(ta, 'ta cannot be nil; acceleration beyond allowed time')
     end
@@ -69,6 +63,32 @@ misclib.find_burnpoint = function(t0, p0_x, p0_y, v0_x, v0_y,
     ey = p1_y - dy*t1
 
     return ta, bx,cx,dx,ex, by,cy,dy,ey
+end
+
+
+
+---find the time where tangent of curve P arrives at value v at time t
+-- @param P   Polynomial instance
+-- @param now earliest possible instant of acceleration (number)
+-- @param v   target value (number)
+-- @param t   target time (number)
+-- @error P is not quadratic
+-- @return number
+misclib.findBurnCutoff = function(P, now, v, t)
+    local a, b, c = P:getCoefficients(t)
+    --assert(a and b and c, 'polynomial must be quadratic')
+    local ta, l,m,n
+--  ta = (-(-2*a*t) [+/-] sqrt((-2*a*t)^2 - 4*a*(v-b*t-c))) / (2*a)
+--           --l--               --l--           ---m---
+--                             -------------n------------ 
+    l = 2*a*t
+    m = v-b*t-c
+    n = l^2 - 4*a*m
+    ta = (l + n^0.5) / (2*a)
+    if ta >= now and ta <= t then return ta end
+    ta = (l - n^0.5) / (2*a)
+    if ta >= now and ta <= t then return ta end
+    error('no valid burn cutoff found')
 end
 
 

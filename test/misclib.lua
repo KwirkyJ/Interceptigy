@@ -7,10 +7,10 @@ local luaunit = require 'luaunit.luaunit'
 --TODO: rename function and module names
 --TODO: more test cases to verify
 
-TestBurnframe = {}
-TestBurnframe.test_thing = function(self)
+TestRequiredA = {}
+TestRequiredA.test_thing = function(self)
     local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80, 20,0.5, 1.0, -25, -10, 50
-    local ax, ay = misclib.find_burnframe(v0_x, v0_y, dx, dy, dt)
+    local ax, ay, req = misclib.findRequiredAccel(v0_x, v0_y, dx, dy, dt)
     -- kinematic eqn 1 : 
     -- d == vt + 1/2a*t^2
     -- d - vt == 1/2a*t^2
@@ -18,54 +18,63 @@ TestBurnframe.test_thing = function(self)
     -- (d - vt)*2/t^2 == a
     assertEquals(ax, (dx - v0_x*dt)*2/dt^2)
     assertEquals(ay, (dy - v0_y*dt)*2/dt^2)
+    assertEquals(req, (ax^2 + ay^2)^0.5)
 end
 
 
 
--- f1(t0)  = p0
--- f'1(t0) = v0
+--[[
+FIND BURN CUTOFF USE CASE:
+local now, target_x, target_y, target_t
+local fx, fy = entity:getPositionFunctions()
+local a = entity:getAvailableAcceleration()
+local ax, ay, a_req = misclib.findRequiredAcceleration(fx, fy, target_x, target_y, target_t)
+## a_req = (ax^2 + ay^2)^0.5
+ax = a * (ax/a_req) / 2 -- divide a_ by two to convert acceleration
+ay = a * (ay/a_req) / 2 --   to quadratic coefficient
+local burn_fx = trackfactory.tangent(fx, now, ax/2)
+local burn_fy = trackfactory.tangent(fy, now, ay/2)
+if a < a_req then 
+    ##SIGNAL PROBLEM; CONTINUE
+else
+    local burn_stop = misclib.findBurnCutoff(burn_fx, target_x, target_t)
+    ##local coast_fx = trackfactory.tangent(burn_fx, burn_stop)
+    ##local coast_fy = trackfactory.tangent(burn_fy, burn_stop)
+    burn_fx:insert(burn_stop, trackfactory.tangentCoeffs(burn_fx))
+    burn_fy:insert(burn_stop, trackfactory.tangentCoeffs(burn_fy))
+end
+entity:setTrack(burn_fx, burn_fy)
+--]]
+
+-- given:
+-- f1(t)   = a*t^2 + b*t + c
+-- f'1(t)  = 2*a*t + b
+-- f2(t)   = d*t + e -- unknown
+-- f'2(t)  = d -- unknown
+--
+-- relations:
 -- f1(ta)  = f2(ta)
 -- f'1(ta) = f'2(ta)
 -- f2(t1)  = p1
 --
--- f1  = 1/2*a*t^2 + b*t + c
--- f'1 = a*t + b
--- f2  = d*t + e
--- f'2 = d
+-- d = 2*a*ta + b -- f'2(ta) == f'1(ta)
+-- e = p1 - d*t1  -- f2(t1)  == p1
 --
--- b = v0 - a*t0              -- f'1(t0) == v0
--- c = p0 - 1/2*a*t0^2 - b*t0 -- f1(t0)  == p0
--- d = a*ta + b               -- f'2(ta) == f'1(ta)
--- e = p1 - d*t1              -- f2(t1)  == p1
---
--- d*ta + e == 1/2*a*ta^2 + b*ta + c   -- f1(ta) == f2(ta)
+-- d*ta + e == a*ta^2 + b*ta + c   -- f1(ta) == f2(ta)
 -- SOLVE FOR ta
--- (a*ta + b)*ta + (p1-(a*ta + b)*t1) == 1/2*a*ta^2 + b*ta + c -- expand e, d
--- a*ta^2 + b*ta + p1 - a*ta*t1 - b*t1 == 1/2*a*ta^2 + b*ta + c -- DPMOA
--- 1/2*a*ta^2 + b*ta + p1 - a*ta*t1 - b*t1 == b*ta + c -- subract 1/2*a*ta^2 from both sides
--- 1/2*a*ta^2 + p1 - a*ta*t1 - b*t1 == c --subtract b*ta from both sides
--- 1/2*a*ta^2 - a*t1*ta + p1 - b*t1 - c == 0 -- subract c from both sides; reorder
--- (1/2*a)*ta^2 + (-a*t1)*ta + (p1 - b*ta - c) == 0 -- show quadratic
+-- (2*a*ta + b)*ta + (p1-(2*a*ta + b)*t1)  == a*ta^2 + b*ta + c -- expand e, d
+-- 2*a*ta^2 + b*ta + p1 - 2*a*ta*t1 - b*t1 == a*ta^2 + b*ta + c -- DPMOA
+-- a*ta^2 + b*ta + p1 - a*ta*t1 - b*t1     == b*ta + c          -- subtract a*ta^2 from both sides
+-- a*ta^2 + p1 - a*ta*t1 - b*t1            == c                 -- subtract b*ta   from both sides
+-- a*ta^2 + p1 - a*ta*t1 - b*t1 - c        == 0                 -- subtract c      from both sides
+-- (a)*ta^2 + (-a*t1)*ta + (p1 - b*t1 - c) == 0                 -- show quadratic
 -- ta = (-(-a*t1) [+/-] ((-a*t1)^2 - 4*(1/2*a)(p1 - b*t1 - c))^0.5) / (2*(1/2*a)) -- quadratic formula
-TestBurnpoint = {}
-TestBurnpoint.test_thing = function(self)
-    local a_max = 0.05
-    local dx, dy, D = -25, -10, (725)^0.5 -- D = ((-25)^2 + (-10)^2)^0.5
-    
-    local ax, ay = dx*a_max/D, dy*a_max/D
-    local t0, p0_x, p0_y, v0_x, v0_y, t1, p1_x, p1_y = 300, 80, 20, 0.5, 1.0, 350, 80, 60
-    local ta, bx, cx, dx, ex, by, cy, dy, ey = misclib.find_burnpoint(t0, p0_x, p0_y, v0_x, v0_y, ax, ay, t1, p1_x, p1_y)
-    assertEquals(ta, (ax*t1 + ((-ax*t1)^2 - 2*ax*(p1_x-bx*t1-cx))^0.5) / ax) -- 312.27776466627...
-    
-    assertEquals(bx, v0_x - ax*t0)
-    assertEquals(cx, p0_x - 1/2*ax*t0^2 - bx*t0)
-    assertEquals(dx, ax*ta + bx)
-    assertEquals(ex, p1_x - dx*t1)
-    
-    assertEquals(by, v0_y - ay*t0)
-    assertEquals(cy, p0_y - 1/2*ay*t0^2 - by*t0)
-    assertEquals(dy, ay*ta + by)
-    assertEquals(ey, p1_y - dy*t1)
+TestFindBurnCutoff = {}
+TestFindBurnCutoff.test_findBurnCutoff = function(self)
+    local now, target_x, target_t = 88, 62.6, 200
+    local curve = piecewise.Polynomial(0, -0.02, 4.72, -197.88)
+    local t_cut = misclib.findBurnCutoff(curve, now, target_x, target_t)
+    assertAlmostEquals(t_cut, 123.6848638866443, 1e-12)
 end
 
 
@@ -73,8 +82,8 @@ end
 TestFindClosest = {}
 TestFindClosest.test_constants = function(self)
     local now = 5
-    local f1x, f1y = track.new(now,20,80)
-    local f2x, f2y = track.new(now, 0, 0)
+    local f1x, f1y = track.newParametric(now,20,80)
+    local f2x, f2y = track.newParametric(now, 0, 0)
     local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
     assertAlmostEquals(t, 5, 1e-12)
     assertAlmostEquals(d, (20^2 + 80^2), 1e-12, 'returned distance is squared')
@@ -82,8 +91,8 @@ end
 TestFindClosest.test_const_and_line = function(self)
     local Poly = piecewise.Polynomial
     local now = 5
-    local f1x, f1y = track.new(now, 30, 80, 1, -0.5)
-    local f2x, f2y = track.new(now, 50, 50)
+    local f1x, f1y = track.newParametric(now, 30, 80, 1, -0.5)
+    local f2x, f2y = track.newParametric(now, 50, 50)
     local t, d = misclib.findClosest(now, f1x, f1y, f2x, f2y)
     assertAlmostEquals(t, 33, 1e-12)
     assertAlmostEquals(d, 320, 1e-12) -- distance is still squared
@@ -91,8 +100,8 @@ end
 TestFindClosest.test_inputs_unaltered = function(self)
     local now = 8
     local sometime = 88
-    local f1x, f1y = track.new(now, 30, 80, 1, -0.5)
-    local f2x, f2y = track.new(now, 50, 50)
+    local f1x, f1y = track.newParametric(now, 30, 80, 1, -0.5)
+    local f2x, f2y = track.newParametric(now, 50, 50)
     local c1x, c2x, c1y, c2y = f1x:clone(), f2x:clone(), f1y:clone(), f2y:clone()
     local pxt = f1x(sometime)
     _ = misclib.findClosest(now + 5*math.random(), f1x, f1y, f2x, f2y)
@@ -103,6 +112,8 @@ TestFindClosest.test_inputs_unaltered = function(self)
     assertEquals(f1x:evaluate(sometime), pxt)
 end
 --TODO: two lines, combinations with curves
+
+
 
 luaunit:run(arg)
 
