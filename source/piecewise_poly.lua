@@ -123,6 +123,84 @@ piecewise.evaluate = function(P, t)
     return v
 end
 
+---get the time t at which a*t + b == 0
+-- @param a linear coefficient (number)
+-- @param b constant (number)
+-- @return number
+local function getRoots1(a, b)
+    return -b/a
+end
+
+---get time(s) t at which a*t^2 + b*t + c == 0
+-- can be two, one, or no value(s)
+-- x = (-b [+-] (b^2 - 4*a*c)^0.5) / (2*a)
+-- @param a quadratic coefficient (number)
+-- @param b linear coefficient (number)
+-- @param c constant (number)
+-- @return nil OR number OR number, number (ordered least to most)
+local function getRoots2(a, b, c)
+    local descriminant = b^2 - 4*a*c
+    if math.abs(descriminant) < 1e-16 then -- == 0
+        return -b/(2*a)
+    elseif descriminant > 0 then
+        descriminant, a, b = descriminant^0.5, 2*a, -b
+        local t1, t2 = (b + descriminant)/a, (b - descriminant)/a
+        if t1 > t2 then return t2, t1 end
+        return t1, t2
+    end 
+end
+
+---find the approximate root of a polynomial using Newton's method
+-- @param P Polynomial instance
+-- @param guess start search value (default 0)
+-- @param iters number of iterations (default 50)
+local function Newton(P, guess, iters)
+    guess, iters = guess or 0, iters or 50
+--    if iters == 0 then return guess
+--    else return Newton(P,
+--                       guess - P(guess)/P:getGrowth(guess),
+--                       iters-1) 
+--    end
+    for _=1, iters do
+        guess = guess - P:evaluate(guess) / P:getGrowth(guess)
+    end
+    return guess
+end
+
+---get time(s) t at which a*t^3 + b*t^2 + c*t +d == 0
+-- can be three, two, or one value(s)
+-- uses Newton approximation to find roots
+-- @param a cubic coefficient (number)
+-- @param b square coefficient (number)
+-- @param c linear coefficient (number)
+-- @param d constant (number)
+-- @return number OR number, number, 
+--         OR number, number, number (ordered least to most)
+local function getRoots3(a,b,c,d)
+    local t1, t2 = getRoots2(3*a, 2*b, c)
+    local t_inf = getRoots1(3*a, b) -- 6*a, 2*b
+    local P = piecewise.Polynomial(-math.huge, a,b,c,d)
+    if not t1 then -- no direction shifts
+        return Newton(P, t_inf)
+    elseif not t2 then -- 'flat' at inflection point
+        local guess = 10 -- offset
+        if P:getGrowth(t_inf) < 0 then guess = -guess end
+        return Newton(P, guess)
+    else -- critical points both exist
+        local ta, tb, tc = Newton(P, 2*t1 - t_inf),
+                           Newton(P, t_inf),
+                           Newton(P, 2*t2 - t_inf)
+        if math.abs(ta-tb) < 1e-7 
+        or math.abs(tb-tc) < 1e-7
+        then 
+            if math.abs(ta - tc) < 1e-7 then return ta 
+            else return ta, tc
+            end
+        end
+        return ta, tb, tc
+    end
+end
+
 ---Find the 'time(s)' at which the polynomial has the given value;
 -- supports only polynomials of degree two or less.
 -- @param P Polynomial instance
@@ -132,43 +210,34 @@ piecewise.getRoots = function(P, v)
     v = v or 0
     assert(type(v) == 'number', 'value must be number, was: '..type(v))
     if not P[1] then return {} end
-    local roots, t_start, t_stop, t, coeffs = {}
+    local roots, t, t_start, t_stop, coeffs = {}
     for i, piece in ipairs(P) do 
-    --i=1, #P do 
-    --    local piece = P[i]
-        local t_start, coeffs, t_stop = startOf(piece), coeffsOf(piece), math.huge
+    --i=1, #P do local piece = P[i]
+        t_start, coeffs, t_stop = startOf(piece), coeffsOf(piece), math.huge
         if P[i+1] then t_stop = startOf(P[i+1]) end
-        --assert(type(t_start) == 'number')
-        --assert(type(t_stop)  == 'number')
-        --assert(type(coeffs)  == 'table')
         if #coeffs == 1 then -- constant
             if coeffs[1] == v then
                 roots[#roots+1] = {t_start, t_stop}
             end
         elseif #coeffs == 2 then -- linear
-            t = (v - coeffs[2]) / coeffs[1]
+            t = getRoots1(coeffs[1], coeffs[2]-v)
             if t >= t_start and t < t_stop then
                 roots[#roots+1] = t
             end
         elseif #coeffs == 3 then -- quadratic
-            -- x = (-b +/- (b^2 - 4ac)^0.5) / (2a)
-            local a, b, c = coeffs[1], coeffs[2], coeffs[3]-v
-            t = (b^2 - 4*a*c)
-            if t >= 0 then
-                t = t^0.5
-                local t1, t2 = (-b-t)/(2*a), (t-b)/(2*a)
-                if t1 == t2 then 
-                    t2 = nil
-                elseif t2 < t1 then 
-                    t1, t2 = t2, t1 
-                end
-                if t_start <= t1 and t1 < t_stop then
-                    roots[#roots+1] = t1
-                end
-                if t2 and t2 >= t_start and t2 < t_stop then
-                    roots[#roots+1] = t2
+            for _, t in ipairs({getRoots2(coeffs[1], coeffs[2], coeffs[3]-v)}) do
+                if t_start <= t and t < t_stop then
+                    roots[#roots+1] = t
                 end
             end
+        elseif #coeffs == 4 then --cubic
+            local a, b, c, d = unpack(coeffs)
+            for _,t in ipairs({getRoots3(a, b, c, d-v)}) do
+                if t_start <= t and t < t_stop then
+                    roots[#roots+1] = t
+                end
+            end
+            --error('degree is higher than maximum supported')
         else 
             error('degree is higher than maximum supported')
         end

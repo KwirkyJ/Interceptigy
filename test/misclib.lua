@@ -9,42 +9,19 @@ local luaunit = require 'luaunit.luaunit'
 
 TestRequiredA = {}
 TestRequiredA.test_thing = function(self)
-    local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80, 20,0.5, 1.0, -25, -10, 50
-    local ax, ay, req = misclib.findRequiredAccel(v0_x, v0_y, dx, dy, dt)
+    local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80,20, 0.5,1.0, 45,-10, 50
+    local ax, ay, req = misclib.findRequiredAcceleration(v0_x, v0_y, dx, dy, dt)
     -- kinematic eqn 1 : 
     -- d == vt + 1/2a*t^2
     -- d - vt == 1/2a*t^2
     -- (d - vt)*2 == a*t^2
     -- (d - vt)*2/t^2 == a
-    assertEquals(ax, (dx - v0_x*dt)*2/dt^2)
-    assertEquals(ay, (dy - v0_y*dt)*2/dt^2)
+    assertEquals(ax, (dx - v0_x*dt)*2/dt^2) --  0.016
+    assertEquals(ay, (dy - v0_y*dt)*2/dt^2) -- -0.048
     assertEquals(req, (ax^2 + ay^2)^0.5)
 end
 
 
-
---[[
-FIND BURN CUTOFF USE CASE:
-local now, target_x, target_y, target_t
-local fx, fy = entity:getPositionFunctions()
-local a = entity:getAvailableAcceleration()
-local ax, ay, a_req = misclib.findRequiredAcceleration(fx, fy, target_x, target_y, target_t)
-## a_req = (ax^2 + ay^2)^0.5
-ax = a * (ax/a_req) / 2 -- divide a_ by two to convert acceleration
-ay = a * (ay/a_req) / 2 --   to quadratic coefficient
-local burn_fx = trackfactory.tangent(fx, now, ax/2)
-local burn_fy = trackfactory.tangent(fy, now, ay/2)
-if a < a_req then 
-    ##SIGNAL PROBLEM; CONTINUE
-else
-    local burn_stop = misclib.findBurnCutoff(burn_fx, target_x, target_t)
-    ##local coast_fx = trackfactory.tangent(burn_fx, burn_stop)
-    ##local coast_fy = trackfactory.tangent(burn_fy, burn_stop)
-    burn_fx:insert(burn_stop, trackfactory.tangentCoeffs(burn_fx))
-    burn_fy:insert(burn_stop, trackfactory.tangentCoeffs(burn_fy))
-end
-entity:setTrack(burn_fx, burn_fy)
---]]
 
 -- given:
 -- f1(t)   = a*t^2 + b*t + c

@@ -62,7 +62,10 @@ local function newElement(colortable)
     if px > winx/2 then vx = -vx end
     if py > winy/2 then vy = -vy end
     colortable = colortable or {random(0xff), random(0xff), random(0xff)}
-    return entity.new(now, px, py, vx, vy, colortable)
+    --return entity.new(now, px, py, vx, vy, colortable)
+    local e = entity.new(now, px, py, vx, vy, colortable)
+    e:setMaxAcceleration(random(10) + random())
+    return e
 end
 
 function love.load()
@@ -201,6 +204,14 @@ function love.update(dt)
         local t_manip = es[i]:getTInt()
 --        if t_manip then assert(es[i].id == e_manip.id) end
         if t_manip and t_manip < now then demanip('abort') end
+        if random() >= 0.99 then
+            local tx, ty, tt = math.random(winx), math.random(winy), now + random(100)
+            local fx, fy, err = track.adjustment(es[i], now, tx, ty, tt)
+            es[i]:setTrack(fx, fy)
+            if err then es[i][3] = {0xff, 0, 0}  -- violating data encapsulation...
+            else es[i][3] = {0xff, 0xff, 0xff}
+            end
+        end
 
         ex, ey = es[i]:getPosition(now)
 --        if ex < 0 or winx < ex 
@@ -217,21 +228,31 @@ end
 local function drawTrack(fx, fy, rgb) --TODO: curved segments
     local x, y, x1, y1, t
     lg.setColor(rgb)
+    x, y = camera:getScreenPoint(fx(now), fy(now))
+    local starts = fx:getStarts()
+    if #starts > 1 and now < starts[2] then
+        local burnstop = starts[2]
+        for i=1, 20 do
+            t = i/20 * (burnstop-now) + now
+            x1, y1 = camera:getScreenPoint(fx(t), fy(t))
+            lg.line(x,y, x1, y1)
+            x,y = x1, y1
+        end
+    end
     -- fx:getDegree() -?-> {2, 1} OR {1} OR (very rarely) {0}
-    x,  y = camera:getScreenPoint(fx(now), fy(now))
     x1, y1 = camera:getScreenPoint(fx(now+1000), fy(now+1000))
     lg.line(x,y, x1, y1)
-    t = math.ceil(now)
-    for count = 1, 1000 do
-        -- draw reference points
-        x, y = camera:getScreenPoint(fx(t), fy(t))
-        if  x >= 0 and x <= winx 
-        and y >= 0 and y <= winy 
-        then
-            lg.circle('line', x, y, 3, 8)
-        end
-        t = t+1
-    end
+    --t = math.ceil(now)
+    --for count = 1, 1000 do
+    --    -- draw reference points
+    --    x, y = camera:getScreenPoint(fx(t), fy(t))
+    --    if  x >= 0 and x <= winx 
+    --    and y >= 0 and y <= winy 
+    --    then
+    --        lg.circle('line', x, y, 3, 8)
+    --    end
+    --    t = t+1
+    --end
 end
 
 ---signify important element, 

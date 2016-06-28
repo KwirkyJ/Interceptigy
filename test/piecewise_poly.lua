@@ -489,12 +489,46 @@ TestRoot.test_multiple_pieces = function(self)
                   480^0.5, -- ~21.9
                  })
 end
-TestRoot.test_cubic = function(self)
-    self.p:insert(2, 3, -3, 0.667, -7.5)
-    assertError('cubic is not supported', nil,
-                self.p.getRoots, self.p, 0)
-    assertError('cubic is not supported', nil,
-                piecewise.getRoots, self.p, 0)
+-- root values computed with Wolfram|Alpha
+TestRoot.test_cubic_simple = function(self)
+    local P = piecewise.Polynomial(-3, 1, 0, 0, 0)
+    local roots = P:getRoots()
+    assertEquals(#roots, 1)
+    assertAlmostEquals(roots[1], 0, 1e-7) -- 1.568...e-8
+    local roots = P:getRoots(8)
+    assertAlmostEquals(roots[1], 2, 1e-7)
+end
+TestRoot.test_cubic_no_minmax = function(self)
+    local P = piecewise.Polynomial(-3, 2, 4, 7, -8)
+    local roots = P:getRoots()
+    assertEquals(#roots, 1)
+    assertAlmostEquals(roots[1], 0.728774952, 1e-8)
+end
+TestRoot.test_cubic_other_single = function(self)
+    local P = piecewise.Polynomial(-3, -2, 4, 7, -40)
+    local roots = P:getRoots()
+    assertEquals(#roots, 1)
+    assertAlmostEquals(roots[1], -2.524525582, 1e-8)
+end
+TestRoot.test_cubic_other_single_out_of_domain = function(self)
+    local P = piecewise.Polynomial(-1, -2, 4, 7, -40)
+    local roots = P:getRoots()
+    assertEquals(#roots, 0) -- -1 > -2.52...
+end
+TestRoot.test_cubic_tworoots = function(self)
+    local P = piecewise.Polynomial(-8, -2, 4, 7, -(158 + 29*(58^0.5))/27)
+    local roots = P:getRoots()
+    assertEquals(#roots, 2)
+    assertAlmostEquals(roots[1], (2 - 58^0.5)/3, 1e-8) -- -1.8791...
+    assertAlmostEquals(roots[2], (2 + (29/2)^0.5)/3, 1e-7) -- 1.9360...
+end
+TestRoot.test_cubic_three_roots = function(self)
+    local P = piecewise.Polynomial(-8, -2, 4, 7, -3)
+    local roots = P:getRoots()
+    assertEquals(#roots, 3, require('lib.moretables.init').tostring(roots))
+    assertAlmostEquals(roots[1], -(1+3^0.5)/2, 1e-9) -- -1.3660...
+    assertAlmostEquals(roots[2], (3^0.5 - 1)/2, 1e-9) -- 0.36603...
+    assertAlmostEquals(roots[3], 3, 1e-9)
 end
 TestRoot.test_value_typecheck = function(self)
     self.p:insert(math.random(10), 1,1,1)

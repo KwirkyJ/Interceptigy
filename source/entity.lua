@@ -97,6 +97,15 @@ entity.getProjectedTrack = function(E, t, q)
     end
 end
 
+entity.getAvailableAcceleration = function(E)
+    return E[4]
+end
+
+entity.setMaxAcceleration = function(E, a)
+    assert(type(a) == 'number')
+    E[4] = a
+end
+
 ---create a new Entity instance
 -- entity.new(now, px, py, vx, vy, color)
 -- entity.new(now, random) -- creates a random entity
@@ -122,12 +131,15 @@ entity.new = function(now, px, py, vx, vy, color)
             [1] = trackfactory.new(now, px, vx),
             [2] = trackfactory.new(now, py, vy),
             [3] = color,
+            [4] = 1, -- acceleration
             t_interact = nil,
             id = idstore,
+            getAvailableAcceleration = entity.getAvailableAcceleration,
             getColor          = entity.getColor,
             getPosition       = entity.getPosition,
             getProjectedTrack = entity.getProjectedTrack,
             getRealTrack      = entity.getRealTrack,
+            setMaxAcceleration = entity.setMaxAcceleration,
             getTInt           = entity.getTInt,
             setTInt           = entity.setTInt,
             setTrack          = entity.setTrack,

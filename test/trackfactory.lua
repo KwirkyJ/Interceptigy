@@ -81,7 +81,7 @@ TestTangents.test_errors = function(self)
                 trackfactory.tangent, function() return end, 8)
     assertError('P must be a valid Polynomial',
                 trackfactory.tangent, {5, {1,2}}, 8)
-    assertError('P(t) cannot be nil',
+    assertError('Polynomial must be defined at time 2',
                 trackfactory.tangent, poly, 2)
 end
 
