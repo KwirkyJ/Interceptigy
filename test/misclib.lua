@@ -4,21 +4,20 @@ local track     = require 'source.trackfactory'
 
 local luaunit = require 'luaunit.luaunit'
 
---TODO: rename function and module names
---TODO: more test cases to verify
 
 TestRequiredA = {}
 TestRequiredA.test_thing = function(self)
-    local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80,20, 0.5,1.0, 45,-10, 50
+    -- change 80,20 -> 105,70  to  80,20 -> 150,60
+    local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80,20, 0.5,1.0, 70,-60, 50
     local ax, ay, req = misclib.findRequiredAcceleration(v0_x, v0_y, dx, dy, dt)
     -- kinematic eqn 1 : 
     -- d == vt + 1/2a*t^2
     -- d - vt == 1/2a*t^2
     -- (d - vt)*2 == a*t^2
     -- (d - vt)*2/t^2 == a
-    assertEquals(ax, (dx - v0_x*dt)*2/dt^2) --  0.016
-    assertEquals(ay, (dy - v0_y*dt)*2/dt^2) -- -0.048
-    assertEquals(req, (ax^2 + ay^2)^0.5)
+    assertAlmostEquals(ax, (dx - v0_x*dt)*2/dt^2, 1e-15) --  0.036
+    assertAlmostEquals(ay, (dy - v0_y*dt)*2/dt^2, 1e-15) -- -0.008
+    assertAlmostEquals(req, (ax^2 + ay^2)^0.5, 1e-15)
 end
 
 

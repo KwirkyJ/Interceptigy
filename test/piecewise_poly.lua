@@ -95,6 +95,11 @@ TestInsertAndEvaluate.test_more_pieces = function(self)
     assertEquals(self.p(2.5), 8, 'inserted linear function')
     assertAlmostEquals(self.p(5), (-0.5*5^3 + 3*5^2 + 2), 1e-12, 'cubic')
 end
+TestInsertAndEvaluate.test_unbounded = function(self)
+    local p = piecewise.Polynomial({4, 1, 2}, {8, -3, 9})
+    assertNil(p(0), 'nominal behavior')
+    assertEquals(p(0, true), 2, 'override and continue "first piece" forward')
+end
 
 
 
@@ -591,6 +596,11 @@ TestDerive.test_getGrowth_several = function(self)
     assertAlmostEquals(self.p:getGrowth(3),  26, 1e-12)
     assertAlmostEquals(self.p:getGrowth(5),   1, 1e-12)
     assertAlmostEquals(self.p:getGrowth(100), 0, 1e-12)
+end
+TestDerive.test_getGrowth_unbounded = function(self)
+    self.p:insert(2, 4, 3, 2)
+    assertNil(self.p:getGrowth(1))
+    assertAlmostEquals(self.p:getGrowth(1, true), 8+3, 1e-12)
 end
 
 

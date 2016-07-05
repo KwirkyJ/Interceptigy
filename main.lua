@@ -32,23 +32,24 @@ local closest_e
 local closest_t
 local closest_d
 local mouseState = "idle" --idle, drag, zoom, manip, manip-drag
---local manip_path -- {fx, fy}
---local manip_ref -- {x, y, t}
+local manip_e -- entity
+local manip_t -- timestamp of manipulation point
+local manip_x, manip_y -- projected track
+local manip_err
 
 ---Flag manipulation of the closest element/entity, if applicable
 local function initManip()
---    local e, t = e_close[1], e_close[2]
---    e:setTInt(t)
---    e_manip = e
+    manip_e = closest_e
+    manip_t = closest_t
 end
 
 ---Conclude element/entity manipulation
 local function demanip(abort)
---    if not e_manip then return end
---    e_manip:setTInt(nil)
---    --if not abort then
---    --end
---    e_manip = nil
+    if not manip_e then return end
+    if not abort then
+        manip_e:setTrack(manip_x, manip_y)
+    end
+    manip_e, manip_x, manip_y, manip_t, manip_err = nil, nil, nil, nil, nil
 end
 
 ---Whether or not e_closest is 'within hot range'
@@ -64,7 +65,7 @@ local function newElement(colortable)
     colortable = colortable or {random(0xff), random(0xff), random(0xff)}
     --return entity.new(now, px, py, vx, vy, colortable)
     local e = entity.new(now, px, py, vx, vy, colortable)
-    e:setMaxAcceleration(random(10) + random())
+    e:setMaxAcceleration(3)
     return e
 end
 
@@ -84,7 +85,11 @@ end
 
 function love.keypressed(key)
     if key == 'escape' then 
-        love.event.push('quit')
+        if manip_e then 
+            demanip('abort')
+        else
+            love.event.push('quit')
+        end
     end
    
     if key == ' ' or key == 'space' then -- backwards-compatibility
@@ -106,11 +111,6 @@ function love.mousemoved(x, y, dx, dy)
         camera:setZoom(zl - dy / MOUSEDRAG_ZOOM_CONSTANT)
         camera:matchPointsScreenWorld(lm.getX(), lm.getY(), wx, wy)
     end
-    --if mouseState == 'manip' 
-    --or mouseState == 'manip-drag' 
-    --and e_manip then
-    --    -- manipulate entity
-    --end
 end
 
 function love.mousepressed(x, y, button)
@@ -140,12 +140,10 @@ function love.mousereleased(x, y, button)
     elseif button == lmb then
         if mouseState == 'manip' then
             mouseState = 'idle'
-            -- make element change course
-            --if e_manip then demanip() end
+            demanip() -- make element change course
         elseif mouseState == 'manip-drag' then
             mouseState = 'drag'
-            -- make element change course
-            --if e_manip then demanip() end
+            demanip() -- make element change course
         elseif mouseState == 'zoom' then
             mouseState = 'drag'
         end
@@ -163,30 +161,24 @@ if version[2] > 9 then
 end
 
 local function updateClosestEntity(mx, my, e)
-    local fx, fy, t, d
-    fx, fy = e[1], e[2]
-    t, d = misc.findClosest(now, mx, my, fx, fy)
-    
+    local t, d = misc.findClosest(now, mx, my, e:getRealTrack(now))
     if t then
         if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
     else
-        local ex, ey, dx, dy
-        ex, ey = e:getPosition(now)
-        dx, dy = math.abs(mx(now) - ex), math.abs(my(now) - ey)
-        d = (dx^2 + dy^2)^0.5
-        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT then
-            if (not closest_d) or (d < closest_d) then return e, now, d end
+        local ex, ey = e:getPosition(now)
+        d = ((mx(now) - ex)^2 + (my(now) - ey)^2)^0.5
+        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT
+        and (not closest_d or d < closest_d)
+        then 
+            return e, now, d
         end
     end
     return closest_e, closest_t, closest_d
 end
 
-local function updateManipRef()
---    manip_ref = nil
---    if isCloseHot() then
---        local x, y = closest_e:getPosition(closest_t) -- t < now ==> nil, nil
---        manip_ref = {x, y, closest_t}
---    end
+---get x- and y-tracks going from current entity situation to (tx, ty) at time tt
+local function getManipulatedTrack(e, tx, ty, tt)
+    return track.adjustment(e, now, tx, ty, tt)
 end
 
 function love.update(dt)
@@ -197,35 +189,24 @@ function love.update(dt)
 --        print(updatecount, now)
     
     closest_e, closest_t, closest_d = nil, nil, nil
-    mx, my = camera:getWorldPoint(lm:getPosition())
-    mx, my = track.newParametric(now, mx, my)
+    mx, my = track.newParametric(now, camera:getWorldPoint(lm:getPosition()))
     
     for i=1, #es do
-        local t_manip = es[i]:getTInt()
---        if t_manip then assert(es[i].id == e_manip.id) end
-        if t_manip and t_manip < now then demanip('abort') end
-        if random() >= 0.99 then
-            local tx, ty, tt = math.random(winx), math.random(winy), now + random(100)
-            local fx, fy, err = track.adjustment(es[i], now, tx, ty, tt)
-            es[i]:setTrack(fx, fy)
-            if err then es[i][3] = {0xff, 0, 0}  -- violating data encapsulation...
-            else es[i][3] = {0xff, 0xff, 0xff}
+        if manip_e and es[i].id == manip_e.id then
+            if manip_t <= now then 
+                demanip('abort')
+            else
+                local tx, ty = camera:getWorldPoint(lm.getPosition())
+                manip_x, manip_y, manip_err = getManipulatedTrack(es[i], tx, ty, manip_t)
             end
         end
 
-        ex, ey = es[i]:getPosition(now)
---        if ex < 0 or winx < ex 
---        or ey < 0 or winy < ey 
---        then
---        --    es[i] = newElement()
---        --else es[i][1]:clearBefore(now)
---        --     es[i][2]:clearBefore(now)
---        end
+--        ex, ey = es[i]:getPosition(now)
         closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
     end
 end
 
-local function drawTrack(fx, fy, rgb) --TODO: curved segments
+local function drawTrack(fx, fy, rgb)
     local x, y, x1, y1, t
     lg.setColor(rgb)
     x, y = camera:getScreenPoint(fx(now), fy(now))
@@ -238,8 +219,10 @@ local function drawTrack(fx, fy, rgb) --TODO: curved segments
             lg.line(x,y, x1, y1)
             x,y = x1, y1
         end
+        -- draw the burn-end
+        x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+        lg.circle('line', x,y, 6, 4)
     end
-    -- fx:getDegree() -?-> {2, 1} OR {1} OR (very rarely) {0}
     x1, y1 = camera:getScreenPoint(fx(now+1000), fy(now+1000))
     lg.line(x,y, x1, y1)
     --t = math.ceil(now)
@@ -264,7 +247,6 @@ local function highlightCloseTrack()
     lg.circle('fill', x, y, 3, 8) -- dot on track
     x, y = camera:getScreenPoint(closest_e:getPosition(now))
     lg.circle('line', x, y, 10, 12) -- circle around entity
-    --TODO: intercept markers
 end
 
 local function drawInterceptPair(t, fx, fy, fc, tx, ty, tc, highlight)
@@ -280,8 +262,8 @@ local function drawInterceptPair(t, fx, fy, fc, tx, ty, tc, highlight)
     lg.circle('line', x, y, 12, 16)
 end
 
-local function drawIntercepts(entity)
-    local fx, fy = entity:getRealTrack(now)
+local function drawIntercepts(e)
+    local fx, fy = e:getRealTrack(now)
     for _,target in ipairs(es) do
       if entity ~= target then 
         --TODO: projected track of 'other's', real tracks of 'own'
@@ -291,7 +273,7 @@ local function drawIntercepts(entity)
         if t and t ~= now then
             --TODO: highlight if mouse is close to one of these
             local highlight = false
-            drawInterceptPair(t, fx, fy, entity:getColor(),
+            drawInterceptPair(t, fx, fy, e:getColor(),
                                  tx, ty, target:getColor(), highlight)
         end
       end
@@ -322,13 +304,26 @@ function love.draw()
     end
     
     lg.setColor(0xff, 0xff, 0xff)
-    --if e_manip then
-    --    lg.print("manipulating object: "..e_manip.id)
-    --end
-
+    
     if isCloseHot() then 
         highlightCloseTrack() 
         drawIntercepts(closest_e)
+    end
+    if manip_e then
+        local c = {0xff, 0xff, 0xff}
+        if manip_err then 
+            c[2], c[3] = 0, 0 
+        end
+        lg.setColor(c)
+        local mx, my = manip_x(manip_t), manip_y(manip_t)
+        lg.print(manip_t, 10, 10)
+        lg.print(mx, 10, 20)
+        lg.print(my, 10, 30)
+        drawTrack(manip_x, manip_y, c) 
+        local sx, sy = camera:getScreenPoint(mx, my)
+        lg.circle('line', sx, sy, 9, 8)
+        sx, sy = camera:getScreenPoint(manip_e:getPosition(manip_t))
+        lg.circle('fill', sx, sy, 4, 8)
     end
 end
 

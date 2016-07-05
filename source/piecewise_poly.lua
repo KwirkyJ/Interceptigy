@@ -111,10 +111,19 @@ end
 ---Find value of the polynomial at a given 'time'
 -- @param P Polynomial instance
 -- @param t time (number)
--- @return nil iff time is before first polynomial piece; else number
-piecewise.evaluate = function(P, t)
-    if not P[1] or t < startOf(P[1]) then return nil end
-    local v, _, coeffs = 0, piecewise.getPiece(P, t)
+-- @param unbounded allow values from before given starttime (boolean)
+-- @return number or nil
+piecewise.evaluate = function(P, t, unbounded)
+    local v, coeffs
+    if not P[1] then return nil end
+    if t < startOf(P[1]) then 
+        if unbounded then
+            v, coeffs = 0, P[1][2]
+        else return nil 
+        end
+    else
+        v, _, coeffs = 0, piecewise.getPiece(P, t)
+    end
     if coeffs then
         for i=1, #coeffs do
             v = v * t + coeffs[i] 
@@ -150,19 +159,23 @@ local function getRoots2(a, b, c)
     end 
 end
 
+local moretables = require 'lib.moretables.init'
+
 ---find the approximate root of a polynomial using Newton's method
 -- @param P Polynomial instance
 -- @param guess start search value (default 0)
 -- @param iters number of iterations (default 50)
 local function Newton(P, guess, iters)
     guess, iters = guess or 0, iters or 50
---    if iters == 0 then return guess
---    else return Newton(P,
---                       guess - P(guess)/P:getGrowth(guess),
---                       iters-1) 
---    end
+--    local guesses = {}
     for _=1, iters do
-        guess = guess - P:evaluate(guess) / P:getGrowth(guess)
+        local v, d = P:evaluate(guess, true), P:getGrowth(guess, true)
+        if not v then error("value of P is nil!\n@ "..guess..'\t'..tostring(P)) end
+        if not d then error("derivative of P is nil!\n@ "..guess..'\t'..tostring(P)..'\n'..moretables.tostring(guesses)) end
+        if d == 0 then break end -- no further improvement can be made?
+--        guesses[#guesses+1] = {guess, v, d}
+        guess = guess - P:evaluate(guess, true) / P:getGrowth(guess, true)
+        if guess == math.huge or guess == -math.huge then break end
     end
     return guess
 end
@@ -260,13 +273,14 @@ end
 -- if no time t is provided, returns a table of new coefficients;
 -- else solves resulting polynomial at time t and returns number
 local function derivePiece(coeffs, t)
-    local degree, dc, newc = #coeffs, {}
-    if t then dc = 0 end
-    if degree < 2 then 
+    local dc = 0
+    if not t then dc = {} end
+    if #coeffs < 2 then -- one or none -> constant or err
         if t then dc = 0 else dc = {0} end
     else
-        for i=1, degree-1 do
-            newc = coeffs[i] * (degree-i)
+        local newc
+        for i=1, #coeffs-1 do
+            newc = coeffs[i] * (#coeffs-i)
             if t then
                 dc = dc * t + newc
             else
@@ -278,13 +292,14 @@ local function derivePiece(coeffs, t)
 end
 
 ---Get the instantaneous derivative at time t
-piecewise.getGrowth = function(P, t)
-    local t0, t1
-    for i=1, #P do
-        local piece = P[i]
+piecewise.getGrowth = function(P, t, unbounded)
+    local t0, t1, piece
+    for i, piece in ipairs(P) do
         t0, t1 = startOf(piece), math.huge
         if P[i+1] then t1 = startOf(P[i+1]) end
-        if t0 <= t and t <= t1 then 
+        if (i==1 and t < t0 and unbounded) 
+        or (t0 <= t and t <= t1) 
+        then 
             return derivePiece(coeffsOf(piece), t)
         end
     end

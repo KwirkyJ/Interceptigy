@@ -87,22 +87,18 @@ track.adjustment = function(E, now, tx, ty, tt)
     a_E = E:getAvailableAcceleration()
 --                          findRequiredAcceleration(v0x, v0y, dx, dy, dt)
     ax, ay, a_req = misclib.findRequiredAcceleration(fx:getGrowth(now), 
-                        fy:getGrowth(now), tx-fx(tt), ty-fx(tt), tt-now)
+                        fy:getGrowth(now), tx-fx(now), ty-fy(now), tt-now)
     ax, ay = a_E * ax/a_req, a_E * ay/a_req
-    burn_x = track.tangent(fx, now, ax/2) -- acceleration to coefficient
+    burn_x = track.tangent(fx, now, ax/2) -- ax/2 -> acceleration to coefficient
     burn_y = track.tangent(fy, now, ay/2)
-    local t_burnstop = tt
     if a_req >= a_E then 
-        err = true 
-        --burn_x:insert(tt, track.tangentCoeffs(burn_x, tt))
-        --burn_y:insert(tt, track.tangentCoeffs(burn_y, tt))
+        err = true
     else
-        t_burnstop = misclib.findBurnCutoff(burn_x, now, tx, tt)
-        --burn_x:insert(t_burnstop, track.tangentCoeffs(burn_x, t_burnstop))
-        --burn_y:insert(t_burnstop, track.tangentCoeffs(burn_y, t_burnstop))
+        --reuse target time for end-of-burn time
+        tt = misclib.findBurnCutoff(burn_x, now, tx, tt)
     end
-    burn_x:insert(t_burnstop, track.tangentCoeffs(burn_x, t_burnstop))
-    burn_y:insert(t_burnstop, track.tangentCoeffs(burn_y, t_burnstop))
+    burn_x:insert(tt, track.tangentCoeffs(burn_x, tt))
+    burn_y:insert(tt, track.tangentCoeffs(burn_y, tt))
     return burn_x, burn_y, err
 end
 
