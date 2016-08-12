@@ -32,7 +32,7 @@ end
 -- @return number
 misclib.findBurnCutoff = function(P, now, v, t)
     local a, b, c = P:getCoefficients(t)
-    assert(a and b and c, 'polynomial must be quadratic\t'..a..','..b..','..c)
+    assert(a and b and c, 'polynomial must be quadratic\t'..tostring(a)..','..tostring(b)..','..tostring(c))
     local ta, l,m,n
 --  ta = (-(-2*a*t) [+/-] sqrt((-2*a*t)^2 - 4*a*(v-b*t-c))) / (2*a)
 --           --l--               --l--           ---m---
