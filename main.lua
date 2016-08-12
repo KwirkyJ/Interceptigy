@@ -1,6 +1,7 @@
 -- testbed thing
 -- intercept and manipulation of tracks
 
+local approach  = require 'source.approachlist'
 local entity    = require 'source.entity'
 local misc      = require 'source.misclib'
 local track     = require 'source.trackfactory'
@@ -37,6 +38,8 @@ local manip_t -- timestamp of manipulation point
 local manip_x, manip_y -- projected track
 local manip_err
 
+local approaches
+
 ---Flag manipulation of the closest element/entity, if applicable
 local function initManip()
     manip_e = closest_e
@@ -62,8 +65,13 @@ local function newElement(colortable)
     local vx, vy = random(30), random(30)
     if px > winx/2 then vx = -vx end
     if py > winy/2 then vy = -vy end
-    colortable = colortable or {random(0xff), random(0xff), random(0xff)}
-    --return entity.new(now, px, py, vx, vy, colortable)
+    if not colortable then
+        local t = {0xff, math.random(0x100)-1, math.random(0x100)-1}
+        colortable = {}
+        for i=1, 3 do
+            colortable[#colortable+1] = table.remove(t, math.random(#t))
+        end
+    end
     local e = entity.new(now, px, py, vx, vy, colortable)
     e:setMaxAcceleration(3)
     return e
@@ -182,15 +190,16 @@ local function getManipulatedTrack(e, tx, ty, tt)
 end
 
 function love.update(dt)
-    local mx, my, ex, ey
+    local mx, my --, ex, ey
     now = getTime() - starttime
     update_count = update_count + 1
 --        print(now)
 --        print(updatecount, now)
     
+    approaches = {}
+
     closest_e, closest_t, closest_d = nil, nil, nil
     mx, my = track.newParametric(now, camera:getWorldPoint(lm:getPosition()))
-    
     for i=1, #es do
         if manip_e and es[i].id == manip_e.id then
             if manip_t <= now then 
@@ -203,127 +212,145 @@ function love.update(dt)
 
 --        ex, ey = es[i]:getPosition(now)
         closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
+        
+        for j=i+1, #es do
+            local e1, e2 = es[i], es[j]
+            local fx, fy = e1:getRealTrack(now)
+            local tx, ty = e2:getRealTrack(now)
+            local t, d = misc.findClosest(now, fx, fy, tx, ty)
+            approach.insert(approaches, t, d, e1, e2)
+        end
     end
 end
 
-local function drawTrack(fx, fy, rgb)
-    local x, y, x1, y1, t
-    lg.setColor(rgb)
-    x, y = camera:getScreenPoint(fx(now), fy(now))
-    local starts = fx:getStarts()
-    if #starts > 1 and now < starts[2] then
-        local burnstop = starts[2]
-        for i=1, 20 do
-            t = i/20 * (burnstop-now) + now
-            x1, y1 = camera:getScreenPoint(fx(t), fy(t))
-            lg.line(x,y, x1, y1)
-            x,y = x1, y1
-        end
-        -- draw the burn-end
-        x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
-        lg.circle('line', x,y, 6, 4)
-    end
-    x1, y1 = camera:getScreenPoint(fx(now+1000), fy(now+1000))
-    lg.line(x,y, x1, y1)
-    --t = math.ceil(now)
-    --for count = 1, 1000 do
-    --    -- draw reference points
-    --    x, y = camera:getScreenPoint(fx(t), fy(t))
-    --    if  x >= 0 and x <= winx 
-    --    and y >= 0 and y <= winy 
-    --    then
-    --        lg.circle('line', x, y, 3, 8)
-    --    end
-    --    t = t+1
-    --end
-end
+local drawTrack2 -- forward definition of function mame
 
 ---signify important element, 
--- drop interaction node on track, 
--- and draw 'intercepts'
-local function highlightCloseTrack()
-    local t = math.max(now, closest_t)
-    x, y = camera:getScreenPoint(closest_e:getPosition(t))
-    lg.circle('fill', x, y, 3, 8) -- dot on track
-    x, y = camera:getScreenPoint(closest_e:getPosition(now))
+-- drop interaction node on track,
+local function highlightCloseTrack(drop_node)
+    lg.setColor(0xff, 0xff, 0xff)
+    local x, y = camera:getScreenPoint(closest_e:getPosition(now))
     lg.circle('line', x, y, 10, 12) -- circle around entity
+    if drop_node then
+        x, y = camera:getScreenPoint(closest_e:getPosition(
+                    math.max(now, closest_t)))
+        lg.circle('fill', x, y, 3, 8) -- dot on track
+    end
 end
 
-local function drawInterceptPair(t, fx, fy, fc, tx, ty, tc, highlight)
-    --TODO: scale circle size with 'weapons range'?
-    local x, y
-    lg.setColor(tc)
-    x,y = camera:getScreenPoint(tx(t), ty(t))
-    lg.circle('fill', x, y, 4, 8)
-    lg.circle('line', x, y, 12, 16)
-    lg.setColor(fc)
-    x,y = camera:getScreenPoint(fx(t), fy(t))
+--@param x    world x coordinates
+--@param y    worly y coordinates
+--@param rgba table
+--TODO: @param r radius of attack range
+local function drawApproachMarker(x, y, rgba)
+    lg.setColor(rgba)
+    x,y = camera:getScreenPoint(x, y)
     lg.circle('fill', x, y, 4, 8)
     lg.circle('line', x, y, 12, 16)
 end
 
-local function drawIntercepts(e)
-    local fx, fy = e:getRealTrack(now)
-    for _,target in ipairs(es) do
-      if entity ~= target then 
-        --TODO: projected track of 'other's', real tracks of 'own'
-        --local tx, ty = target:getProjectedTrack(now)
-        local tx, ty = target:getProjectedTrack(now, 'tangent')
-        local t = misc.findClosest(now, fx, fy, tx, ty)
-        if t and t ~= now then
-            --TODO: highlight if mouse is close to one of these
-            local highlight = false
-            drawInterceptPair(t, fx, fy, e:getColor(),
-                                 tx, ty, target:getColor(), highlight)
+local function drawTrackCurve(fx, fy, t0, burnstop, segments)
+    local x, y, x1, y1, t
+    segments = segments or 20
+    x,y = camera:getScreenPoint(fx(now), fy(now))
+    for i=1, segments do
+        t = i/segments * (burnstop-t0) + t0
+        x1, y1 = camera:getScreenPoint(fx(t), fy(t))
+        lg.line(x,y, x1,y1)
+        x,y = x1, y1
+    end
+end
+
+local function getBurnstop(starts, minimum)
+    if #starts > 1 and minimum < starts[2] then return starts[2] end
+end
+
+drawTrack2 = function(fx, fy, rgb, show_burnstop)
+    local x, y, x1, y1
+    lg.setColor(rgb)
+    local burnstop = getBurnstop(fx:getStarts(), now)
+    if burnstop then
+        drawTrackCurve(fx, fy, now, burnstop)
+        if show_burnstop then -- draw the burn-end
+            x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+            lg.circle('line', x, y, 6, 4)
         end
-      end
+    else
+        burnstop = now
+    end
+    x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+    x1, y1 = camera:getScreenPoint(fx(burnstop+1000), fy(burnstop+1000))
+    lg.line(x,y, x1,y1)
+end
+
+local function drawEntity(e)
+    local x, y = e:getRealTrack(now)
+    drawTrack2(x, y, e:getColor())
+    x, y = camera:getScreenPoint(e:getPosition(now)) -- reuse variables; why not?
+    lg.circle('fill', x, y, 6, 8)
+end
+
+--local function drawWorldBounds()
+--    local x, y, dx, dy
+--    lg.setColor(0xff, 0, 0)
+--    x,y = camera:getScreenPoint(10, 10)
+--    dx, dy = (winx-20)*camera:getScale(), (winy-20)*camera:getScale()
+--    lg.rectangle('line', x, y, dx, dy)
+--    x,y = camera:getScreenPoint(0, 0)
+--    dx, dy = winx*camera:getScale(), winy*camera:getScale()
+--    lg.rectangle('line', x, y, dx, dy)
+--end
+
+local function tryDrawManip()
+    if not manip_e then return end
+    
+    local c = {0xff, 0xff, 0xff}
+    if manip_err then 
+        c[2], c[3] = 0, 0 
+    end
+    drawTrack2(manip_x, manip_y, c, true)
+    local sx, sy = camera:getScreenPoint(manip_x(manip_t), 
+                                         manip_y(manip_t))
+    lg.setColor(c)
+    lg.circle('fill', sx, sy, 4, 8) -- reference of planned track
+    sx, sy = camera:getScreenPoint(manip_e:getPosition(manip_t))
+    lg.circle('fill', sx, sy, 4, 8) -- reference of current track
+    
+    for _,e in ipairs(es) do
+        if e ~= e_manip then
+            local t,d = misc.findClosest(now, manip_x, manip_y, e:getRealTrack(now))
+            if t then
+                local x,y = e:getPosition(t)
+                drawApproachMarker(x, y, c)
+                drawApproachMarker(manip_x(t), manip_y(t), e:getColor())
+            end
+        end
     end
 end
 
 function love.draw()
     lg.setBackgroundColor(0, 0, 0)
-    local x, y, dx, dy
     
-    -- draw the 'world bounds'
-    lg.setColor(0xff, 0, 0)
-    x,y = camera:getScreenPoint(10, 10)
-    dx, dy = (winx-20)*camera:getScale(), (winy-20)*camera:getScale()
-    lg.rectangle('line', x, y, dx, dy)
-    x,y = camera:getScreenPoint(0, 0)
-    dx, dy = winx*camera:getScale(), winy*camera:getScale()
-    lg.rectangle('line', x, y, dx, dy)
+    --drawWorldBounds()
     
-    --draw each element and its track
-    for _,e in ipairs(es) do
-        drawTrack(e[1], e[2], e[3])
-        if e:getTInt() then
-            lg.setColor(0xff, 0xff, 0xff)
-        end
-        local sx, sy = camera:getScreenPoint(e:getPosition(now))
-        lg.circle('fill', sx, sy, 6, 8)
+    for i=1, #es do 
+        drawEntity(es[i]) --draw each element and its track
     end
-    
-    lg.setColor(0xff, 0xff, 0xff)
     
     if isCloseHot() then 
-        highlightCloseTrack() 
-        drawIntercepts(closest_e)
-    end
-    if manip_e then
-        local c = {0xff, 0xff, 0xff}
-        if manip_err then 
-            c[2], c[3] = 0, 0 
+        if not manip_e then
+            --draw standard approach markers
+            local x, y
+            for t,_,e1,e2 in approach.getApproaches(approaches, closest_e) do
+                x,y = e1:getPosition(t)
+                drawApproachMarker(x,y, e2:getColor())
+                x,y = e2:getPosition(t)
+                drawApproachMarker(x,y, e1:getColor())
+            end
         end
-        lg.setColor(c)
-        local mx, my = manip_x(manip_t), manip_y(manip_t)
-        lg.print(manip_t, 10, 10)
-        lg.print(mx, 10, 20)
-        lg.print(my, 10, 30)
-        drawTrack(manip_x, manip_y, c) 
-        local sx, sy = camera:getScreenPoint(mx, my)
-        lg.circle('line', sx, sy, 9, 8)
-        sx, sy = camera:getScreenPoint(manip_e:getPosition(manip_t))
-        lg.circle('fill', sx, sy, 4, 8)
+        highlightCloseTrack(not manip_e) -- encircle element; drop 'handle' on track if not already manipulating something
     end
+    
+    tryDrawManip()
 end
 
