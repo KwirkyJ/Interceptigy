@@ -2,12 +2,29 @@
 ---Requires LuaUnit
 
 local luaunit = require 'luaunit.luaunit'
-local polynomial = require 'source.polynomial'
+local Polynomial = require 'source.polynomial'
 
 
 
-TestInstantiationErrors = {}
---new
+TestInstantiation = {}
+TestInstantiation.test_proper_table = function(self)
+    local t = {[3] = -2.4, 
+               [1] =  2, 
+               [0] = -1.5}
+    local p = Polynomial.new(t)
+    assertAlmostEquals(-2.4*5^3 + 2*5 - 1.5, 
+                       Polynomial.evaluate(p, 5), 
+                       1e-14)
+end
+TestInstantiation.test_proper_list = function(self)
+    local p = Polynomial.new(-2.4, 0, 2, -1.5)
+    assertAlmostEquals(-2.4*5^3 + 2*5 - 1.5, 
+                       Polynomial.evaluate(p, 5), 
+                       1e-14)
+end
+TestInstantiation.test_typeerror = function(self)
+    assert(false, 'TODO')
+end
 
 
 
@@ -19,7 +36,28 @@ TestArithmetic = {}
 
 
 
-TestUtil = {}
---tostring
---are_equivalent
+TestToString = {}
+TestToString.test_table_call = function(self)
+    local p = Polynomial.new(-2.4, 0, 2, -1.5)
+    assertEquals(Polynomial.tostring(p),
+                 "Polynomial: -2.4t^3 + 2t - 1.5")
+end
+TestToString.test_metatable = function(self)
+    local p = Polynomial.new({[2]=1.414, [1]=-9})
+    assertEquals(tostring(p),
+                 "Polynomial: 1.414t^2 - 9t")
+end
+TestToString.test_metatable_const = function(self)
+    local p = Polynomial.new(8)
+    assertEquals(tostring(p), 
+                 "Polynomial: 8")
+end
+
+
+
+TestEquivalence = {}
+
+
+
+luaunit:run(arg)
 
