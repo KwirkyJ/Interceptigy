@@ -60,6 +60,9 @@ TestToString.test_zero = function(self)
     assertEquals(tostring(p),
                  "Polynomial: 0")
 end
+--TODO: specify printing precision?
+
+--TODO: deserialize ==> create Polynomial from a tostring(Poly) string
 
 
 

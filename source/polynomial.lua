@@ -74,6 +74,8 @@ end
 ---@param P Polynomial instance (table)
 ---@return String, e.g., "t^4 - 2.718t^2 + 1"
 Polynomial.tostring = function(P)
+--TODO: repeated calls to '#t' can be a performance hit;
+--      change to local variable? May impair readability further
     local t = {"Polynomial:"}
     for i = P.i_max, 0, -1 do
         if P[i] ~= 0 then
