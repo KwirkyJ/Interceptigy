@@ -89,6 +89,7 @@ Polynomial.tostring = function(P)
             if i > 1 then t[#t+1] = '^'..i end
         end
     end
+    if #t == 1 then t[#t+1] = ' 0' end
     return table.concat(t)
 end
 

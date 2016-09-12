@@ -22,7 +22,10 @@ TestInstantiation.test_proper_list = function(self)
                        Polynomial.evaluate(p, 5), 
                        1e-14)
 end
-TestInstantiation.test_typeerror = function(self)
+TestInstantiation.test_error_type = function(self)
+    assert(false, 'TODO')
+end
+TestInstantiation.test_error_empty = function(self)
     assert(false, 'TODO')
 end
 
@@ -51,6 +54,11 @@ TestToString.test_metatable_const = function(self)
     local p = Polynomial.new(8)
     assertEquals(tostring(p), 
                  "Polynomial: 8")
+end
+TestToString.test_zero = function(self)
+    local p = Polynomial.new(0)
+    assertEquals(tostring(p),
+                 "Polynomial: 0")
 end
 
 
