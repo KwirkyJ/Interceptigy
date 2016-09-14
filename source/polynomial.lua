@@ -1,18 +1,26 @@
 ---Module representing a 'Polynomial' object
 
+DEFAULT_DELTA = 1e-7
 
+local Polynomial = {default_eq_delta = DEFAULT_DELTA}
 
-local Polynomial = {}
-
-
-
-local function getMaxNumIndex(t)
-    local max
-    for k in pairs(t) do
-
-    end
-    return max
+Polynomial.get_eq_delta = function(self)
+    return self.default_eq_delta
 end
+
+Polynomial.set_eq_delta = function(self, d)
+    self.default_eq_delta = d or DEFULT_DELTA
+end
+
+
+
+--local function getMaxNumIndex(t)
+--    local max
+--    for k in pairs(t) do
+--
+--    end
+--    return max
+--end
 
 ---Create a new Polynomial 'object'
 ---@param var TODO
@@ -102,7 +110,13 @@ end
 ---Return True iff coefficients of a and b are equal (or within delta); 
 ---            else false
 Polynomial.are_equivalent = function(a, b, delta)
-    return false
+    if not a._is_polynomial or not b._is_polynomial then return false end
+    if a.i_max ~= b.i_max then return false end
+    delta = delta or Polynomial.default_eq_delta
+    for i=0, a.i_max do
+        if math.abs(a[i] - b[i]) > delta then return false end
+    end
+    return true
 end
 
 ---Sum the coefficients of two Polynomials
