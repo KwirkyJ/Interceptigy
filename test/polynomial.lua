@@ -76,6 +76,13 @@ end
 TestEquivalence.tearDown = function(self)
     Polynomial:set_eq_delta(self.default_delta)
 end
+TestEquivalence.test_default_delta = function(self)
+    assert (Polynomial:get_eq_delta() == 1e-7, 'initial default value')
+    Polynomial:set_eq_delta(0.03)
+    assert (Polynomial:get_eq_delta() == 0.03, 'manually-specified new default')
+    Polynomial:set_eq_delta()
+    assert (Polynomial:get_eq_delta() == 1e-7, 'no arg to set resets to true default')
+end
 TestEquivalence.test_same = function(self)
     local p1 = Polynomial.new(-4, 0.25, 0, -1.11)
     local p2 = Polynomial.new{[0] = -1.11, [3] = 4*-1, [2] = 1/4}
