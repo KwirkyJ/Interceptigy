@@ -46,9 +46,54 @@ end
 
 
 
-TestArithmetic = {}
---evaluate
---add
+TestEvaluate = {}
+TestEvaluate.test_constant = function(self)
+    local p = Polynomial.new(6)
+    for t=-30, 90, 20 do
+        assertEquals(6, Polynomial.evaluate(p, t), 'constant through time')
+        assertEquals(6, p:evaluate(t), 'instance call')
+        assertEquals(6, p(t), 'metatable call')
+    end
+end
+TestEvaluate.test_quartic = function(self)
+    local p = Polynomial.new(0.25, 0, -0.3, 1, 7)
+    local function expect(t) 
+        return 0.25*t^4 - 0.3*t^2 + 1*t + 7 
+    end
+    for t=-400, 400, 100 do
+        assertAlmostEquals(expect(t), p(t), 1e-6) 
+        -- rounding errors prevent greater precision in test?
+    end
+end
+TestEvaluate.test_nonnumeric_t = function(self) assert(false, 'todo') end
+TestEvaluate.test_nil_t = function(self) assert(false, 'todo') end
+TestEvaluate.test_nonpolynomial = function(self) assert(false, 'todo') end
+
+
+
+
+
+TestAddition = {}
+TestAddition.test_zeroes = function(self)
+    local p0 = Polynomial.new()
+    local p1 = Polynomial.new(4, 1)
+    assertEquals(p0, p0)
+    assertEquals(p0, Polynomial.add(p0, p0), 'addition through module')
+    assertEquals(p0, p0:add(p0), 'addition through instance')
+    assertEquals(p0, p0 + p0, 'addition through metatable')
+    assertNotEquals(p0, p0+p1, 'add constant to linear')
+    local p_add = p0 + p0
+    assertEquals(0, p_add(80), '0+0 is still constant 0')
+    p_add = p0 + p1
+    assertAlmostEquals(17, p1(4), 1e-12, 'sanity-check p1')
+    assertEquals(tostring(p1), tostring(p_add))
+    assertAlmostEquals(17, p_add(4), 1e-12,
+                       'linear A plus constant-zero is linear A')
+    p_add = p1 + p0
+    assertAlmostEquals(17, p_add(4), 1e-12,
+                       'linear A plus constant-zero is linear A (commutative)')
+end
+TestAddition.test_more = function(self) assert(false, 'todo') end
 --subtract
 --multiply
 
@@ -72,6 +117,11 @@ TestToString.test_metatable_const = function(self)
 end
 TestToString.test_zero = function(self)
     local p = Polynomial.new(0)
+    assertEquals(tostring(p),
+                 "Polynomial: 0")
+end
+TestToString.test_empty_zero = function(self)
+    local p = Polynomial.new()
     assertEquals(tostring(p),
                  "Polynomial: 0")
 end

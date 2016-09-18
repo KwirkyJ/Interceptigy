@@ -4,36 +4,36 @@ DEFAULT_DELTA = 1e-7
 
 local Polynomial = {default_eq_delta = DEFAULT_DELTA}
 
+
+
+---Get the default equivalence delta (tolerance) for the module
+---@return Number
 Polynomial.get_eq_delta = function(self)
     return self.default_eq_delta
 end
 
+---Set the default equivalence delta for the module
+---@param d Maximum allowable tolerance in difference 
+---         (default DEFAULT_DELTA) (number)
 Polynomial.set_eq_delta = function(self, d)
+--    assert (not d or type(d) == 'number', 
+--            'unallowed parameter for default delta: '..tostring(d))
     self.default_eq_delta = d or DEFULT_DELTA
 end
 
 
 
---local function getMaxNumIndex(t)
---    local max
---    for k in pairs(t) do
---
---    end
---    return max
---end
-
 ---Create a new Polynomial 'object'
----@param var TODO
+---@param var TODO new() parameter documentation
 ---@return Table representing a Polynomial
 Polynomial.new = function(...)
-    local t, P, i_max
+    local t, P, _i_max
     t = {...}
---    assert(#t > 0, 'constructor parameter list cannot be empty')
-    i_max = -math.huge
+    _i_max = 0
     if type(t[1]) == 'table' then 
         t = t[1] 
         for k,_ in pairs(t) do
-            if k > i_max then i_max = k end
+            if k > _i_max then _i_max = k end
         end
     else
         -- reverse order of the vararg-generated table
@@ -46,18 +46,23 @@ Polynomial.new = function(...)
             t[i] = t[i+1]
         end
         t[#t] = nil --trim repeated value at tail
-        i_max = #t
+        _i_max = #t
     end
     
-    P = {i_max = i_max,
-         _is_polynomial = true}
-    for i=0, i_max do
+    P = {_i_max         = _i_max,
+         _is_polynomial = true,
+         evaluate = Polynomial.evaluate,
+         add      = Polynomial.add,
+--         subtract = nil,
+--         multiply = nil,
+        }
+    for i=0, _i_max do
         P[i] = t[i] or 0
         assert(type(P[i]) == 'number', 'non-numeric value! '.. tostring(P[i]))
     end
     local mt = {__call = Polynomial.evaluate,
                 __eq   = Polynomial.are_equivalent,
---                __add  = nil,
+                __add  = Polynomial.add,
 --                __sub  = nil,
 --                __mul  = nil,
                 __tostring  = Polynomial.tostring,
@@ -72,7 +77,7 @@ end
 ---@return Number value of P(t)
 Polynomial.evaluate = function(P, t)
     local v = 0
-    for i = P.i_max, 0, -1 do
+    for i = P._i_max, 0, -1 do
         v = v*t + P[i]
     end
     return v
@@ -80,12 +85,10 @@ end
 
 ---Represent as a string
 ---@param P Polynomial instance (table)
----@return String, e.g., "t^4 - 2.718t^2 + 1"
+---@return String, e.g., "Polynomial: t^4 - 2.718t^2 + 1t +3"
 Polynomial.tostring = function(P)
---TODO: repeated calls to '#t' can be a performance hit;
---      change to local variable? May impair readability further
     local t = {"Polynomial:"}
-    for i = P.i_max, 0, -1 do
+    for i = P._i_max, 0, -1 do
         if P[i] ~= 0 then
             t[#t+1] = ' '
             if P[i] < 0 then
@@ -111,19 +114,24 @@ end
 ---            else false
 Polynomial.are_equivalent = function(a, b, delta)
     if not a._is_polynomial or not b._is_polynomial then return false end
-    if a.i_max ~= b.i_max then return false end
+    if a._i_max ~= b._i_max then return false end
     delta = delta or Polynomial.default_eq_delta
-    for i=0, a.i_max do
+    for i=0, a._i_max do
         if math.abs(a[i] - b[i]) > delta then return false end
     end
     return true
 end
 
----Sum the coefficients of two Polynomials
----@param a     Polynomial instance (table)
----@param b     Polynomial instance (table)
----@return New Polynomial instance of a+b
+---Sum the coefficients of two Polynomials; originals are not modified
+---@param a Polynomial instance (table)
+---@param b Polynomial instance (table)
+---@return New Polynomial where coefficients of a and b have been added
 Polynomial.add = function(a, b)
+    local t = {}
+    for i = 0, math.max(a._i_max, b._i_max) do
+        t[i] = (a[i] or 0) + (b[i] or 0)
+    end
+    return Polynomial.new(t)
 end
 
 ---Subtract the coefficients of two Polynomials
@@ -131,6 +139,7 @@ end
 ---@param b     Polynomial instance (table)
 ---@return New Polynomial instance of a-b
 Polynomial.subtract = function(a, b)
+    return Polynomial.new()
 end
 
 ---Multiply a Polynomial by a number or another Polynomial
@@ -138,6 +147,7 @@ end
 ---@param factor Polynomial instance (table) OR numer
 ---@return New Polynomial instance of a*b
 Polynomial.multiply = function(P, factor)
+    return Polynomial.new()
 end
 
 return Polynomial
