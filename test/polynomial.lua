@@ -23,13 +23,25 @@ TestInstantiation.test_proper_list = function(self)
                        1e-14)
 end
 TestInstantiation.test_error_type = function(self)
-    assert(false, 'TODO')
+    local P = Polynomial.new
+    local f = function(...) return false end
+    assertError ('strings not allowed', nil,
+                 P, '1.5')
+    assertError ('functions not allowed', nil,
+                 P, f)
+    assertError ('booleans not allowed', nil, 
+                 P, true)
+    assert (P(nil), 'nil is valid: populates with default constant 0')
 end
-TestInstantiation.test_empty_zeroes = function(self)
+TestInstantiation.test_empty_defaults_to_zero = function(self)
     local p = Polynomial.new ()
     assertEquals (0, Polynomial.evaluate (p, 0))
     assertEquals (0, Polynomial.evaluate (p, -10))
     assertEquals (0, Polynomial.evaluate (p, 100))
+end
+TestInstantiation.test_empty_table_defaults = function(self)
+    local p = Polynomial.new({})
+    assertEquals(0, Polynomial.evaluate (p, 88))
 end
 
 
