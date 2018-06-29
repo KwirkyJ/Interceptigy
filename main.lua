@@ -13,6 +13,10 @@ local MAX_PIXELS_TO_INTERACT = 20
 
 local NUMBER_OF_ENTITIES = 5
 
+local TRACK_PROJECTION_DURATION = 180
+local TRACK_CURVE_SEGMENT_T = 0.5
+local TRACK_REFERENCE_INTERVAL = 10
+
 local lg      = love.graphics
 local lm      = love.mouse
 local random  = love.math.random
@@ -249,27 +253,40 @@ local function drawApproachMarker(x, y, rgba)
     lg.circle('line', x, y, 12, 16)
 end
 
-local function drawTrackCurve(fx, fy, t0, burnstop, segments)
-    local x, y, x1, y1, t
-    segments = segments or 20
-    x,y = camera:getScreenPoint(fx(now), fy(now))
+local function drawTrackCurve(fx, fy, t0, burnstop)
+    local x1, y1
+    local duration = burnstop - now
+    local segments = math.ceil(duration / TRACK_CURVE_SEGMENT_T)
+    x, y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+    t = burnstop
     for i=1, segments do
-        t = i/segments * (burnstop-t0) + t0
+        t = math.max(now, t-TRACK_CURVE_SEGMENT_T)
         x1, y1 = camera:getScreenPoint(fx(t), fy(t))
         lg.line(x,y, x1,y1)
         x,y = x1, y1
     end
 end
 
-local function getBurnstop(starts, minimum)
-    if #starts > 1 and minimum < starts[2] then return starts[2] end
+local function getBurnstop(fn, minimum)
+    local starts = fn:getStarts()
+    if  #starts > 1
+    and minimum < starts[2]
+    then
+        return starts[2]
+    end
 end
 
 drawTrack2 = function(fx, fy, rgb, show_burnstop)
     local x, y, x1, y1
     lg.setColor(rgb)
-    local burnstop = getBurnstop(fx:getStarts(), now)
+    local drawstop = now + TRACK_PROJECTION_DURATION
+
+    -- draw curve (under thrust/acceleration)
+    local burnstop = getBurnstop(fx, now)
     if burnstop then
+        if burnstop > drawstop then
+            burnstop = drawstop
+        end
         drawTrackCurve(fx, fy, now, burnstop)
         if show_burnstop then -- draw the burn-end
             x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
@@ -278,9 +295,29 @@ drawTrack2 = function(fx, fy, rgb, show_burnstop)
     else
         burnstop = now
     end
-    x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
-    x1, y1 = camera:getScreenPoint(fx(burnstop+1000), fy(burnstop+1000))
-    lg.line(x,y, x1,y1)
+
+    -- draw coast
+    if burnstop ~= drawstop then
+        x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+        x1, y1 = camera:getScreenPoint(fx(drawstop), fy(drawstop))
+        lg.line(x,y, x1,y1)
+    end
+
+    -- draw "constant" reference points
+    if TRACK_REFERENCE_INTERVAL > 0 then
+        local t = math.ceil(now)
+        while true do
+            if t % TRACK_REFERENCE_INTERVAL == 0 then
+                break
+            end
+            t = t + 1
+        end
+        while t < drawstop do
+            x,y = camera:getScreenPoint(fx(t), fy(t))
+            lg.circle("fill", x, y, 2, 12)
+            t = t + TRACK_REFERENCE_INTERVAL
+        end
+    end
 end
 
 local function drawEntity(e)
