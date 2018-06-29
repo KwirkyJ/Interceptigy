@@ -65,11 +65,9 @@ TestEvaluate.test_quartic = function(self)
         -- rounding errors prevent greater precision in test?
     end
 end
-TestEvaluate.test_nonnumeric_t = function(self) assert(false, 'todo') end
-TestEvaluate.test_nil_t = function(self) assert(false, 'todo') end
-TestEvaluate.test_nonpolynomial = function(self) assert(false, 'todo') end
-
-
+TestEvaluate.test_t_nonnumeric = function(self) assert(false, 'todo') end
+TestEvaluate.test_t_nil = function(self) assert(false, 'todo') end
+TestEvaluate.test_polynomial_isnt = function(self) assert(false, 'todo') end
 
 
 
