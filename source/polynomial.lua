@@ -1,6 +1,6 @@
 ---Module representing a 'Polynomial' object
 
-DEFAULT_DELTA = 1e-7
+local DEFAULT_DELTA = 1e-7
 
 local Polynomial = {default_eq_delta = DEFAULT_DELTA}
 
@@ -18,7 +18,7 @@ end
 Polynomial.set_eq_delta = function(self, d)
 --    assert (not d or type(d) == 'number', 
 --            'unallowed parameter for default delta: '..tostring(d))
-    self.default_eq_delta = d or DEFULT_DELTA
+    self.default_eq_delta = d or DEFAULT_DELTA
 end
 
 
@@ -27,7 +27,7 @@ end
 ---@param var TODO new() parameter documentation
 ---@return Table representing a Polynomial
 Polynomial.new = function(...)
-    local t, P, _i_max
+    local t, P, _i_max, len
     t = {...}
     _i_max = 0
     if type(t[1]) == 'table' then 

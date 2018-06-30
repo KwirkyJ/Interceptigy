@@ -72,7 +72,7 @@ local function newElement(colortable)
     if not colortable then
         local t = {0xff, math.random(0x100)-1, math.random(0x100)-1}
         colortable = {}
-        for i=1, 3 do
+        for _=1, 3 do
             colortable[#colortable+1] = table.remove(t, math.random(#t))
         end
     end
@@ -253,13 +253,13 @@ local function drawApproachMarker(x, y, rgba)
     lg.circle('line', x, y, 12, 16)
 end
 
-local function drawTrackCurve(fx, fy, t0, burnstop)
+local function drawTrackCurve(fx, fy, burnstop)
     local x1, y1
     local duration = burnstop - now
     local segments = math.ceil(duration / TRACK_CURVE_SEGMENT_T)
-    x, y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
-    t = burnstop
-    for i=1, segments do
+    local x, y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
+    local t = burnstop
+    for _=1, segments do
         t = math.max(now, t-TRACK_CURVE_SEGMENT_T)
         x1, y1 = camera:getScreenPoint(fx(t), fy(t))
         lg.line(x,y, x1,y1)
@@ -287,7 +287,7 @@ drawTrack2 = function(fx, fy, rgb, show_burnstop)
         if burnstop > drawstop then
             burnstop = drawstop
         end
-        drawTrackCurve(fx, fy, now, burnstop)
+        drawTrackCurve(fx, fy, burnstop)
         if show_burnstop then -- draw the burn-end
             x,y = camera:getScreenPoint(fx(burnstop), fy(burnstop))
             lg.circle('line', x, y, 6, 4)
@@ -354,8 +354,13 @@ local function tryDrawManip()
     lg.circle('fill', sx, sy, 4, 8) -- reference of current track
     
     for _,e in ipairs(es) do
-        if e ~= e_manip then
-            local t,d = misc.findClosest(now, manip_x, manip_y, e:getRealTrack(now))
+         -- if e ~= e_manip then
+         if e ~= manip_e then
+            local t = misc.findClosest(
+                    now,
+                    manip_x,
+                    manip_y,
+                    e:getRealTrack(now))
             if t then
                 local x,y = e:getPosition(t)
                 drawApproachMarker(x, y, c)

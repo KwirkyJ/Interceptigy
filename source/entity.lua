@@ -1,8 +1,6 @@
 local piecewise    = require 'source.piecewise_poly'
 local trackfactory = require 'source.trackfactory'
 
-local unpack = unpack or table.unpack
-
 local idstore = 0
 
 local entity = {}
@@ -57,9 +55,10 @@ end
 -- @error t less than Entity's first position time
 -- @return fx, fy (Piecewise Polynomial instances)
 entity.getRealTrack = function(E, t)
-    local starts, x, y = E[1]:getStarts()
+    local starts = E[1]:getStarts()
     assert(E:getPosition(t), 'entity has no position at given time')
-    x,y = piecewise.Polynomial(), piecewise.Polynomial()
+    local x = piecewise.Polynomial()
+    local y = piecewise.Polynomial()
     for i, s1 in ipairs(starts) do
         local s2 = starts[i+1]
         if not s2 or t <= s2 then

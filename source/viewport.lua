@@ -78,7 +78,9 @@ viewport.update = function(self, dt)
         end
         self.x = self.zoomCenter[2] - self.zoomCenter[1] / self.scale
         self.y = self.zoomCenter[4] - self.zoomCenter[3] / self.scale
-        if not zoomDelta then zoomCenter = false end
+        --if not self.zoomDelta then
+            --self.zoomCenter = false
+        --end
     end
     if self.transDMag then
         local mag = dt * self.panRate
