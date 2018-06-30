@@ -2,6 +2,12 @@ local piecewise = require 'source.piecewise_poly'
 
 local misclib = {}
 
+local pp_add = piecewise.add
+local pp_sub = piecewise.subtract
+local pp_derive = piecewise.getDerivative
+local pp_roots = piecewise.getRoots
+local pp_square = piecewise.square
+
 ---calculate the acceleration required to adjust a position/velocty to
 -- by given distance in given time; uses the first kinematic equation
 -- @param v0_x y-velocity at t0
@@ -41,10 +47,23 @@ misclib.findBurnCutoff = function(P, now, v, t)
     m = v-b*t-c
     n = l^2 - 4*a*m
     ta = (l + n^0.5) / (2*a)
-    if ta >= now and ta <= t then return ta end
+    if  ta >= now
+    and ta <= t then
+        return ta
+    end
     ta = (l - n^0.5) / (2*a)
-    if ta >= now and ta <= t then return ta end
-    --error(string.format('no valid burn cutoff found\n%s now = %f  target = %f  target_time = %f', tostring(P), now, v, t))
+    if  ta >= now
+    and ta <= t then
+        return ta
+    end
+--[[
+    error(string.format(
+            'no valid burn cutoff found\n%s now = %f  target = %f  target_time = %f',
+            tostring(P),
+            now,
+            v,
+            t))
+--]]
     return now
 end
 
@@ -58,21 +77,31 @@ end
 -- @param fy2 y-component of track 2 (Polynomial instance)
 -- @return time, squared distance (numbers)
 misclib.findClosest = function(t0, fx1, fy1, fx2, fy2)
-    local dx, dy, t, fd
     assert(fx1, 'fx1 must not be nil')
     assert(fx2, 'fx2 must not be nil')
     assert(fy1, 'fy1 must not be nil')
     assert(fy2, 'fy2 must not be nil')
-    dx, dy = fx1:subtract(fx2), fy1:subtract(fy2)
-    fd = piecewise.add(dx:square(), dy:square()):getDerivative()
-    t = t0
-    local roots = fd:getRoots(0)
-    if #roots == 0 then return nil end
-    for _,r in ipairs(roots) do
-        if type(r) == 'table' then r = r[1] end
-        if r > t then t=r; break end
+
+    -- fd :: polynomial, distance (squared) to target over time
+    local fd = pp_add(pp_square(pp_sub(fx1,fx2)), pp_square(pp_sub(fy1,fy2)))
+    local roots = pp_roots(pp_derive(fd))
+    local n_roots = #roots
+    if n_roots == 0 then
+        return nil
     end
-    return t, dx(t)^2 + dy(t)^2
+
+    local t = t0
+    for i=1, n_roots do
+        local r = roots[i]
+        if type(r) == 'table' then
+            r = r[1]
+        end
+        if r > t then
+            t=r
+            break
+        end
+    end
+    return t, fd(t)
 end
 
 
