@@ -15,9 +15,9 @@ local pp_square = piecewise.square
 -- @param dx   change in x-position from given to target (at t1)
 -- @param dy   change in y-position from given to target (at t1)
 -- @param dt   time (in seconds) between t0 and t1
--- @return ax, ay, h (numbers: x- and y-acceleration components and 
+-- @return ax, ay, h (numbers: x- and y-acceleration components and
 --         hypotenuse of their vectors)
-misclib.findRequiredAcceleration = function(v0_x, v0_y, dx, dy, dt) 
+misclib.findRequiredAcceleration = function(v0_x, v0_y, dx, dy, dt)
     -- kinematic eqn:
     -- d = v0*dt + 0.5*a*dt^2
     -- a = (d - v0*dt) / (dt^2 / 2)
@@ -42,7 +42,7 @@ misclib.findBurnCutoff = function(P, now, v, t)
     local ta, l,m,n
 --  ta = (-(-2*a*t) [+/-] sqrt((-2*a*t)^2 - 4*a*(v-b*t-c))) / (2*a)
 --           --l--               --l--           ---m---
---                             -------------n------------ 
+--                             -------------n------------
     l = 2*a*t
     m = v-b*t-c
     n = l^2 - 4*a*m
@@ -84,24 +84,23 @@ misclib.findClosest = function(t0, fx1, fy1, fx2, fy2)
 
     -- fd :: polynomial, distance (squared) to target over time
     local fd = pp_add(pp_square(pp_sub(fx1,fx2)), pp_square(pp_sub(fy1,fy2)))
+    local t_closest, d_closest = t0, fd(t0)
     local roots = pp_roots(pp_derive(fd))
     local n_roots = #roots
-    if n_roots == 0 then
-        return nil
-    end
 
-    local t = t0
     for i=1, n_roots do
-        local r = roots[i]
-        if type(r) == 'table' then
-            r = r[1]
+        local t_root = roots[i]
+        if type(t_root) == 'table' then
+            t_root = t_root[1]
         end
-        if r > t then
-            t=r
-            break
+        if t_root > t0 then
+            local d_root = fd(t_root)
+            if d_root < d_closest then
+                t_closest, d_closest = t_root, d_root
+            end
         end
     end
-    return t, fd(t)
+    return t_closest, d_closest
 end
 
 
