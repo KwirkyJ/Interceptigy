@@ -8,6 +8,7 @@ local pp_derive = piecewise.getDerivative
 local pp_roots = piecewise.getRoots
 local pp_square = piecewise.square
 
+
 ---calculate the acceleration required to adjust a position/velocty to
 -- by given distance in given time; uses the first kinematic equation
 -- @param v0_x y-velocity at t0
@@ -25,10 +26,9 @@ misclib.findRequiredAcceleration = function(v0_x, v0_y, dx, dy, dt)
     local K = 2 / dt^2
     local ax, ay = (dx - v0_x*dt)*K, (dy - v0_y*dt)*K
     return ax, ay, (ax^2 + ay^2)^0.5
-end
+end -- findRequiredAcceleration
 
-
-
+
 ---find the time where tangent of curve P arrives at value v at time t
 -- @param P   Polynomial instance
 -- @param now earliest possible instant of acceleration (number)
@@ -39,19 +39,19 @@ end
 misclib.findBurnCutoff = function(P, now, v, t)
     local a, b, c = P:getCoefficients(t)
     assert(a and b and c, 'polynomial must be quadratic\t'..tostring(a)..','..tostring(b)..','..tostring(c))
-    local ta, l,m,n
+    local ta, B, C, K
 --  ta = (-(-2*a*t) [+/-] sqrt((-2*a*t)^2 - 4*a*(v-b*t-c))) / (2*a)
---           --l--               --l--           ---m---
---                             -------------n------------
-    l = 2*a*t
-    m = v-b*t-c
-    n = l^2 - 4*a*m
-    ta = (l + n^0.5) / (2*a)
+--           --B--               --B--           ---C---
+--                             -------------K------------
+    B = 2*a*t
+    C = v-b*t-c
+    K = B^2 - 4*a*C
+    ta = (B + K^0.5) / (2*a)
     if  ta >= now
     and ta <= t then
         return ta
     end
-    ta = (l - n^0.5) / (2*a)
+    ta = (B - K^0.5) / (2*a)
     if  ta >= now
     and ta <= t then
         return ta
@@ -67,8 +67,7 @@ misclib.findBurnCutoff = function(P, now, v, t)
     return now
 end
 
-
-
+
 ---find the time and distance of closest approach between two tracks
 -- @param t0  earliest valid time value in solution space
 -- @param fx1 x-component of track 1 (Polynomial instance)
@@ -102,6 +101,68 @@ misclib.findClosest = function(t0, fx1, fy1, fx2, fy2)
     end
     return t_closest, d_closest
 end
+
+
+---Get starttime, stoptime where a function is at or below a given value.
+-- Assumes function is always positive.
+-- Assumes that closest_instant is at a locally-minimal instant.
+--     f(closest_instant +/- small_value) > f(closest_instant)
+-- @param fd              piecewise polynomial function
+-- @param ceiling         target value to find function intercepts
+-- @param closest_instant time of "lowest value"
+-- @param iterations      how precise to make result (default 20)
+--                        accuracy approximately 1/(2^n)
+-- @return start, stop of interval;
+--         nil if value at closest instant is below ceiling
+misclib.findTimeBoundingValue = function(
+        fd,
+        ceiling,
+        closest_instant,
+        iterations)
+    assert( fd._isPolynomial == true )
+    local closest_distance = fd(closest_instant, true)
+
+    if (not closest_distance) or (closest_distance > ceiling) then
+        return nil
+    end
+
+    iterations = iterations or 20
+    local t0 = closest_instant
+    local _d
+    while true do
+        t0 = t0 - 1
+        _d = fd(t0)
+        if not _d or (_d >= ceiling) then
+            break
+        end
+    end
+    for i=1,iterations do
+        local delta = 1 / 2^i
+        _d = fd(t0)
+        if not _d or (_d > ceiling) then
+            delta = -delta
+        end
+        t0 = t0 - delta
+    end
+
+    local t1 = closest_instant
+    while true do
+        t1 = t1 + 1
+        _d = fd(t1)
+        if not _d or (_d >= ceiling) then
+            break
+        end
+    end
+    for i=1,iterations do
+        local delta = 1 / 2^i
+        _d = fd(t1)
+        if not _d or (_d >= ceiling) then
+            delta = -delta
+        end
+        t1 = t1 + delta
+    end
+    return t0, t1
+end -- findTimeBoundingValue()
 
 
 

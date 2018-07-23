@@ -5,7 +5,11 @@ local track     = require 'source.trackfactory'
 local luaunit = require 'luaunit.luaunit'
 
 
+-- ============================================================================
 TestRequiredA = {}
+-- ============================================================================
+
+
 TestRequiredA.test_thing = function(self)
     -- change 80,20 -> 105,70  to  80,20 -> 150,60
     local p0_x, p0_y, v0_x, v0_y, dx, dy, dt = 80,20, 0.5,1.0, 70,-60, 50
@@ -20,7 +24,9 @@ TestRequiredA.test_thing = function(self)
     assertAlmostEquals(req, (ax^2 + ay^2)^0.5, 1e-15)
 end
 
-
+-- ============================================================================
+TestFindBurnCutoff = {}
+-- ============================================================================
 
 -- given:
 -- f1(t)   = a*t^2 + b*t + c
@@ -45,7 +51,8 @@ end
 -- a*ta^2 + p1 - a*ta*t1 - b*t1 - c        == 0                 -- subtract c      from both sides
 -- (a)*ta^2 + (-a*t1)*ta + (p1 - b*t1 - c) == 0                 -- show quadratic
 -- ta = (-(-a*t1) [+/-] ((-a*t1)^2 - 4*(1/2*a)(p1 - b*t1 - c))^0.5) / (2*(1/2*a)) -- quadratic formula
-TestFindBurnCutoff = {}
+
+
 TestFindBurnCutoff.test_findBurnCutoff = function(self)
     local now, target_x, target_t = 88, 62.6, 200
     local curve = piecewise.Polynomial(0, -0.02, 4.72, -197.88)
@@ -53,9 +60,11 @@ TestFindBurnCutoff.test_findBurnCutoff = function(self)
     assertAlmostEquals(t_cut, 123.6848638866443, 1e-12)
 end
 
-
-
+-- ============================================================================
 TestFindClosest = {}
+-- ============================================================================
+
+
 TestFindClosest.test_constants = function(self)
     local now = 5
     local f1x, f1y = track.newParametric(now,20,80)
@@ -64,6 +73,8 @@ TestFindClosest.test_constants = function(self)
     assertAlmostEquals(t, 5, 1e-12)
     assertAlmostEquals(d, (20^2 + 80^2), 1e-12, 'returned distance is squared')
 end
+
+
 TestFindClosest.test_const_and_line = function(self)
     local Poly = piecewise.Polynomial
     local now = 5
@@ -73,6 +84,8 @@ TestFindClosest.test_const_and_line = function(self)
     assertAlmostEquals(t, 33, 1e-12)
     assertAlmostEquals(d, 320, 1e-12) -- distance is still squared
 end
+
+
 TestFindClosest.test_inputs_unaltered = function(self)
     local now = 8
     local sometime = 88
@@ -89,7 +102,53 @@ TestFindClosest.test_inputs_unaltered = function(self)
 end
 --TODO: two lines, combinations with curves
 
+-- ============================================================================
+TestFindTimeBoundingValue = {}
+-- ============================================================================
 
+
+TestFindTimeBoundingValue.test_not_polynomial = function(self)
+    assertError("nil piecewise polynomial", nil,
+            misclib.findTimeBoundingValue, nil, 5, 5)
+    assertError("non-polynomial table", nil, 
+            misclib.findTimeBoundingValue, {5,4,3}, 5, 5)
+end
+
+
+TestFindTimeBoundingValue.test_invalid_value = function(self)
+    local poly = piecewise.Polynomial(0, 1, -3, 3) -- x^2 - 3x + 3
+    local t_root = 1.5 -- d/dx :: 0 = 2x-3; x=3/2
+    local v_root = 0.75 -- 1.5^2 - 3*1.5 + 3
+    local target = 0.5
+    assert( target < v_root )
+    local t0, t1 = misclib.findTimeBoundingValue(poly, target, t_root)
+    assertNil(t0, "start time should be nil")
+    assertNil(t1, "end time should be nil")
+end
+
+
+TestFindTimeBoundingValue.test_equal_values = function(self)
+    local poly = piecewise.Polynomial(0, 1, -3, 3) -- x^2 - 3x + 3
+    local t_root = 1.5 -- d/dx :: 0 = 2x-3; x=3/2
+    local v_root = 0.75 -- 1.5^2 - 3*1.5 + 3
+    local target = 0.75
+    local t0, t1 = misclib.findTimeBoundingValue(poly, target, t_root)
+    assertAlmostEquals(t0, t_root, 1/(2^19))
+    assertAlmostEquals(t1, t_root, 1/(2^19))
+end
+
+
+TestFindTimeBoundingValue.test_valid_bound = function(self)
+    local poly = piecewise.Polynomial(0, 1, -3, 3) -- x^2 - 3x + 3
+    local t_root = 1.5 -- d/dx :: 0 = 2x-3; x=3/2
+    local v_root = 0.75 -- 1.5^2 - 3*1.5 + 3
+    local target = 1
+    local t0, t1 = misclib.findTimeBoundingValue(poly, target, t_root)
+    assertAlmostEquals(t0, 1, 1/(2^19))
+    assertAlmostEquals(t1, 2, 1/(2^19))
+end
+
+-- ============================================================================
 
 luaunit:run(arg)
 

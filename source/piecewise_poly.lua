@@ -169,22 +169,20 @@ local function Newton(P, guess, tries)
     assert(type(guess) == 'number', "starting guess must be a number")
     assert(type(tries) == 'number', "'tries' must be a number")
     assert(tries > 0, "'tries' must be 1 or more")
---    local guesses = {}
+    local v_guess, d_guess
     for _=1, tries do
-        local v = P:evaluate(guess, true)
-        if not v then
+        v_guess = P:evaluate(guess, true)
+        if not v_guess then
             error("value of P is nil!\n@ "..guess..'\t'..tostring(P))
         end
-        local d = P:getGrowth(guess, true)
---        if not d then error("derivative of P is nil!\n@ "..guess..'\t'..tostring(P)..'\n'..moretables.tostring(guesses)) end
-        if not d then 
+        d_guess = P:getGrowth(guess, true)
+        if not d_guess then 
             error("derivative of P is nil!\n@ "..guess..'\t'..tostring(P))
         end
         if d == 0 then
             break
         end -- no further improvement can be made?
---        guesses[#guesses+1] = {guess, v, d}
-        guess = guess - P:evaluate(guess, true) / P:getGrowth(guess, true)
+        guess = guess - v_guess / d_guess
         if guess == math.huge
         or guess == -math.huge
         then
