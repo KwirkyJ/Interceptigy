@@ -52,27 +52,11 @@ local manip_err
 
 local approaches
 
----Flag manipulation of the closest element/entity, if applicable
-local function initManip()
-    manip_e = closest_e
-    manip_t = closest_t
-end -- initManip()
-
----Conclude element/entity manipulation
-local function demanip(abort)
-    if not manip_e then
-        return
-    end
-    if not abort then
-        manip_e:setTrack(manip_x, manip_y)
-    end
-    manip_e, manip_x, manip_y, manip_t, manip_err = nil, nil, nil, nil, nil
-end -- denamip()
-
----Whether or not e_closest is 'within hot range'
-local function isCloseHot()
-    return closest_e and (closest_d*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
-end -- isCloseHot()
+---forward declarations
+local demanip
+local initManip
+local isCloseHot
+local recomputeApproaches
 
 local function newElement(colortable)
     local px, py = random(winx), random(winy)
@@ -108,6 +92,7 @@ function love.load()
     camera = viewport.new(winx, winy)
     camera:setPanRate(100)
     camera:setZoomRate(2)
+    recomputeApproaches()
 end -- love.load()
 
 function love.quit()
@@ -118,6 +103,10 @@ function love.quit()
         outfile:close()
     end
 end -- love.quit()
+
+-- ============================================================================
+-- UI LOGIC SECTION
+-- ============================================================================
 
 function love.keypressed(key)
     if key == 'escape' then
@@ -161,7 +150,9 @@ function love.mousepressed(x, y, button)
             mouseState = 'zoom'
         else
             mouseState = 'manip'
-            if isCloseHot() then initManip() end
+            if isCloseHot() then
+                initManip()
+            end
         end
     end
 end -- love.mousepressed()
@@ -196,32 +187,73 @@ if version[2] > 9 then
     end
 end -- love 0.9.x
 
-local function updateClosestEntity(mx, my, e)
-    local t, d = misc.findClosest(now, mx, my, e:getRealTrack(now))
-    if t then
-        if (not closest_d) or (d < closest_d^2) then return e, t, d^0.5 end
-    else
-        local ex, ey = e:getPosition(now)
-        d = ((mx(now) - ex)^2 + (my(now) - ey)^2)^0.5
-        if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT
-        and (not closest_d or d < closest_d)
-        then
-            return e, now, d
+-- ============================================================================
+-- GAMEPLAY LOGIC SECTION
+-- ============================================================================
+
+---Flag manipulation of the closest element/entity, if applicable
+initManip = function()
+    manip_e = closest_e
+    manip_t = closest_t
+end -- initManip()
+
+---Conclude element/entity manipulation
+demanip = function(abort)
+    if not manip_e then
+        return
+    end
+    if not abort then
+        manip_e:setTrack(manip_x, manip_y)
+        recomputeApproaches()
+    end
+    manip_e, manip_x, manip_y, manip_t, manip_err = nil, nil, nil, nil, nil
+end -- denamip()
+
+---Whether or not e_closest is 'within hot range'
+isCloseHot = function()
+    return closest_e and (closest_d*camera:getScale() <= MAX_PIXELS_TO_INTERACT)
+end -- isCloseHot()
+
+recomputeApproaches = function()
+    approaches = {}
+    for e1_i = 1, #es do
+        for e2_i = (e1_i+1), #es do
+            local e1, e2 = es[e1_i], es[e2_i]
+            local x1, y1 = e1:getRealTrack(now)
+            local x2, y2 = e2:getRealTrack(now)
+            local t, d = misc.findClosest(now, x1, y1, x2, y2)
+            approach.insert(approaches, t, d^0.5, e1, e2)
         end
     end
-    return closest_e, closest_t, closest_d
+end -- recomputeApproaches()
+
+local function updateClosestEntity()
+    closest_e, closest_t, closest_d = nil, nil, nil
+    local mx, my = track.newParametric(
+            now,
+            camera:getWorldPoint(lm:getPosition()))
+    for i=1, #es do
+        local E = es[i]
+        local t, d = misc.findClosest(now, mx, my, E:getRealTrack(now))
+        if t then
+            if (not closest_d) or (d < closest_d^2) then
+                closest_e, closest_t, closest_d = E, t, d^0.5
+            end
+        else
+            local ex, ey = E:getPosition(now)
+            d = ((mx(now) - ex)^2 + (my(now) - ey)^2)^0.5
+            if d*camera:getScale() <= MAX_PIXELS_TO_INTERACT
+            and (not closest_d or d < closest_d)
+            then
+                closest_e, closest_t, closest_d = E, now, d
+            end
+        end
+    end
 end -- updateClosestEntity()
 
-function love.update(dt)
-    local mx, my
-    now = getTime() - starttime
-
-    approaches = {}
-
-    closest_e, closest_t, closest_d = nil, nil, nil
-    mx, my = track.newParametric(now, camera:getWorldPoint(lm:getPosition()))
+local function updateManipEntity()
     for i=1, #es do
-        if manip_e and es[i].id == manip_e.id then
+        if es[i].id == manip_e.id then
             if manip_t <= now then
                 demanip('abort')
             else
@@ -229,22 +261,24 @@ function love.update(dt)
                 manip_x, manip_y, manip_err = track.adjustment(
                         es[i], now, tx, ty, manip_t)
             end
-        end
-
-        closest_e, closest_t, closest_d = updateClosestEntity(mx, my, es[i])
-
-        for j=i+1, #es do
-            local e1, e2 = es[i], es[j]
-            local x1, y1 = e1:getRealTrack(now)
-            local x2, y2 = e2:getRealTrack(now)
-            local t, d = misc.findClosest(now, x1, y1, x2, y2)
-            approach.insert(approaches, t, d^0.5, e1, e2)
-
-            -- TODO: optimize to not rebuild approach list every loop
-            -- instead, rebuild only on maneuver or entity modification
+            break
         end
     end
+end -- updateManipEntity()
+
+function love.update(dt)
+    now = getTime() - starttime
+
+    if manip_e then
+        updateManipEntity()
+    end
+    updateClosestEntity()
+
 end -- love.update()
+
+-- ============================================================================
+-- GRAPHICS SECTION
+-- ============================================================================
 
 ---signify important element,
 -- drop interaction node on track,
