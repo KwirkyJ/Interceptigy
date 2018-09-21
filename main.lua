@@ -204,9 +204,9 @@ demanip = function(abort)
     end
     if not abort then
         manip_e:setTrack(manip_x, manip_y)
-        recomputeApproaches()
     end
     manip_e, manip_x, manip_y, manip_t, manip_err = nil, nil, nil, nil, nil
+    recomputeApproaches()
 end -- denamip()
 
 ---Whether or not e_closest is 'within hot range'
@@ -448,18 +448,21 @@ local function drawEngagementEnvelope(E)
         local fx2, fy2 = e2:getRealTrack(now)
         local fdx, fdy = fx1:subtract(fx2), fy1:subtract(fy2)
         local fd = fdx:square():add(fdy:square())
+        local nowrange = fd(now)^0.5
         local t0, t1
         if d <= e2.TMP_attack_range then
             t0, t1 = misc.findTimeBoundingValue(
                     fd,
                     e2.TMP_attack_range^2,
                     t)
-            if t0 < now then
-                t0 = now
+            if t0 ~= nil and t1 >= now then
+                if t0 < now then
+                    t0 = now
+                end
+                lg.setLineWidth(9)
+                lg.setColor(e2:getColor())
+                drawTrack2(fx1, fy1, t0, t1)
             end
-            lg.setLineWidth(8)
-            lg.setColor(e2:getColor())
-            drawTrack2(fx1, fy1, t0, t1)
         end
 
         if d < e1.TMP_attack_range then
@@ -467,12 +470,14 @@ local function drawEngagementEnvelope(E)
                     fd,
                     e1.TMP_attack_range^2,
                     t)
-            if t0 < now then
-                t0 = now
+            if t0 ~= nil and t1 >= now then
+                if t0 < now then
+                    t0 = now
+                end
+                lg.setLineWidth(5)
+                lg.setColor(e1:getColor())
+                drawTrack2(fx1, fy1, t0, t1)
             end
-            lg.setLineWidth(4)
-            lg.setColor(e1:getColor())
-            drawTrack2(fx1, fy1, t0, t1)
         end
         lg.setLineWidth(1)
     end -- for each approach

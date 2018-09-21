@@ -148,6 +148,28 @@ TestFindTimeBoundingValue.test_valid_bound = function(self)
     assertAlmostEquals(t1, 2, 1/(2^19))
 end
 
+
+TestFindTimeBoundingValue.test_start_in_bound = function(self)
+    local poly = piecewise.Polynomial(1.2, 1, -3, 3) -- x^2 - 3x + 3
+    local t_root = 1.5 -- d/dx :: 0 = 2x-3; x=3/2
+    local v_root = 0.75 -- 1.5^2 - 3*1.5 + 3
+    local target = 1
+    local t0, t1 = misclib.findTimeBoundingValue(poly, target, t_root)
+    assertAlmostEquals(t0, 1.2, 1/(2^19))
+    assertAlmostEquals(t1, 2, 1/(2^19))
+end
+
+
+TestFindTimeBoundingValue.test_start_in_bound_after = function(self)
+    local poly = piecewise.Polynomial(1.2, 1, -3, 3) -- x^2 - 3x + 3
+    local t_root = 1.5 -- d/dx :: 0 = 2x-3; x=3/2
+    local v_root = 0.75 -- 1.5^2 - 3*1.5 + 3
+    local target = 1
+    local t0, t1 = misclib.findTimeBoundingValue(poly, target, 3)
+    assertNil(t0)
+    assertNil(t1)
+end
+
 -- ============================================================================
 
 luaunit:run(arg)
